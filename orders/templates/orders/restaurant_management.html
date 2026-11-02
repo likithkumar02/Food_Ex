@@ -1,0 +1,137 @@
+{% extends "portals/restaurant_base.html" %}
+
+{% block title %}Restaurant Orders | Food_Ex{% endblock %}
+
+{% block content %}
+<section class="container py-5">
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <div class="card border-0 shadow-sm p-4">
+                <h2 class="mb-4">Restaurant Order Management</h2>
+
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags|default:'info' }}" role="alert">{{ message }}</div>
+                {% endfor %}
+
+                {% if orders %}
+                    {% for order in orders %}
+                        <article class="restaurant-order-card border rounded p-3 mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h5 class="mb-0">Order {{ order.code|default:order.id }}</h5>
+                                <span class="badge bg-danger-subtle text-danger">{{ order.get_status_display }}</span>
+                            </div>
+
+                            <p class="mb-1"><strong>Customer:</strong> {{ order.user.username }}</p>
+                            <p class="mb-1"><strong>Delivery address:</strong> {{ order.delivery_address }}</p>
+                            <section class="restaurant-order-progress" aria-label="Order progress">
+                                <h6>Order progress</h6>
+                                <ol class="restaurant-order-timeline">
+                                    {% for step in order.restaurant_timeline %}
+                                        <li class="{% if step.complete %}is-complete{% endif %}{% if step.current %} is-current{% endif %}" {% if step.current %}aria-current="step"{% endif %}>
+                                            <span class="restaurant-timeline-marker" aria-hidden="true">{% if step.complete %}✓{% elif step.status == "cancelled" or step.status == "rejected" %}×{% else %}{{ forloop.counter }}{% endif %}</span>
+                                            <span>{{ step.label }}</span>
+                                        </li>
+                                    {% endfor %}
+                                </ol>
+                            </section>
+
+                            {% if order.delivery_assignment %}
+                                <section class="restaurant-delivery-summary" aria-label="Delivery partner details">
+                                    <h6>Delivery partner</h6>
+                                    <p class="mb-1"><strong>{{ order.delivery_assignment.partner.get_full_name|default:order.delivery_assignment.partner.username }}</strong> · {{ order.delivery_assignment.get_status_display }}</p>
+                                    {% if order.delivery_assignment.partner.delivery_profile.vehicle_type %}
+                                        <p class="small text-muted mb-0">{{ order.delivery_assignment.partner.delivery_profile.vehicle_type }}{% if order.delivery_assignment.partner.delivery_profile.vehicle_number %} · {{ order.delivery_assignment.partner.delivery_profile.vehicle_number }}{% endif %}</p>
+                                    {% endif %}
+                                </section>
+                            {% else %}
+                                <p class="small text-muted">Delivery partner has not been assigned yet.</p>
+                            {% endif %}
+
+                            <div class="restaurant-order-items">
+                                <strong>Items</strong>
+                                {% for order_item in order.items.all %}
+                                    <div class="restaurant-order-item">
+                                        {% if order_item.menu_item.image %}<img src="{{ order_item.menu_item.image.url }}" alt="" loading="lazy">{% endif %}
+                                        <span>{{ order_item.menu_item.name }} × {{ order_item.quantity }}</span>
+                                        <strong>₹{{ order_item.subtotal }}</strong>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            <p class="mb-3"><strong>Total:</strong> ₹{{ order.total_price }}</p>
+
+                            {% if order.status == "placed" %}
+                                <div class="d-flex flex-wrap gap-2">
+                                    <form method="post" action="{% url 'order_accept' order.id %}">
+                                        {% csrf_token %}
+                                        <button class="btn btn-success" type="submit">Accept</button>
+                                    </form>
+                                    <form method="post" action="{% url 'order_reject' order.id %}">
+                                        {% csrf_token %}
+                                        <label class="visually-hidden" for="rejectReason{{ order.id }}">Reason for rejecting order {{ order.code }}</label>
+                                        <select class="form-select" id="rejectReason{{ order.id }}" name="rejection_reason" required>
+                                            <option value="">Choose rejection reason</option>
+                                            {% for reason, reason_label in rejection_reasons %}
+                                                <option value="{{ reason }}">{{ reason_label }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <label class="visually-hidden" for="rejectNote{{ order.id }}">Optional rejection note</label>
+                                        <input class="form-control" id="rejectNote{{ order.id }}" name="rejection_note" maxlength="255" placeholder="Optional note">
+                                        <button class="btn btn-outline-danger" type="submit">Reject</button>
+                                    </form>
+                                </div>
+                            {% elif order.status == "accepted" %}
+                                <div class="d-flex flex-wrap gap-2">
+                                    <form method="post" action="{% url 'order_preparing' order.id %}">
+                                        {% csrf_token %}
+                                        <button class="btn btn-dark" type="submit">Start preparing</button>
+                                    </form>
+                                    <form method="post" action="{% url 'order_cancel' order.id %}">
+                                        {% csrf_token %}
+                                        <button class="btn btn-outline-danger" type="submit">Cancel order</button>
+                                    </form>
+                                </div>
+                            {% elif order.status == "preparing" %}
+                                <form method="post" action="{% url 'order_ready' order.id %}">
+                                    {% csrf_token %}
+                                    <button class="btn btn-dark" type="submit">Ready for pickup</button>
+                                </form>
+                            {% elif order.status == "ready_for_pickup" or order.status == "finding_delivery_partner" or order.status == "delivery_assigned" or order.status == "assignment_failed" %}
+                                <form class="d-flex flex-wrap align-items-end gap-2" method="post" action="{% url 'order_assign_delivery_partner' order.id %}">
+                                    {% csrf_token %}
+                                    <div>
+                                        <label class="form-label mb-1" for="deliveryPartner{{ order.id }}">Choose an online, available delivery partner</label>
+                                        <select class="form-select" id="deliveryPartner{{ order.id }}" name="partner_id" required>
+                                            <option value="">Select delivery partner</option>
+                                            {% for profile in delivery_partners %}
+                                                <option value="{{ profile.user_id }}">{{ profile.user.get_full_name|default:profile.user.username }}{% if profile.vehicle_type %} · {{ profile.vehicle_type }}{% endif %}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <button class="btn btn-primary" type="submit" {% if not delivery_partners %}disabled{% endif %}>Send delivery request</button>
+                                    {% if not delivery_partners %}
+                                        <p class="small text-muted mb-0">No active delivery partner is online and available right now. Partners do not need GPS to appear here.</p>
+                                    {% else %}
+                                        <p class="small text-muted mb-0">The selected partner must accept the request before pickup.</p>
+                                    {% endif %}
+                                </form>
+                            {% elif order.status == "rejected" or order.status == "cancelled" %}
+                                <p class="mb-0 text-danger fw-semibold">{{ order.get_status_display }}{% if order.rejection_reason %}: {{ order.get_rejection_reason_display }}{% endif %}{% if order.rejection_note %} · {{ order.rejection_note }}{% endif %}</p>
+                            {% elif order.status == "delivered" %}
+                                <p class="mb-0 text-success fw-semibold">Order delivered.</p>
+                            {% else %}
+                                <p class="mb-0 text-muted">Delivery is in progress. The delivery partner updates the pickup and delivery stages.</p>
+                            {% endif %}
+                        </article>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📦</div>
+                        <h3>No incoming orders</h3>
+                        <p>Orders will appear here when customers place them.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

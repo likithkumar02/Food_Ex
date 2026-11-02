@@ -1,0 +1,319 @@
+{% extends "restaurant/base.html" %}
+{% load static %}
+
+{% block title %}Restaurant Account Settings | Food_Ex{% endblock %}
+
+{% block content %}
+<section class="container py-4">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-2 border-bottom gap-3">
+        <div>
+            <p class="text-uppercase text-muted fw-bold mb-1" style="font-size: 0.75rem; letter-spacing: 0.8px;">
+                RESTAURANT / PARTNER PROFILE
+            </p>
+            <h1 class="h3 fw-bold mb-1">
+                {% if edit_mode %}✏️ Edit Account & Restaurant Profile{% else %}⚙️ Account & Restaurant Settings{% endif %}
+            </h1>
+            <p class="text-muted small mb-0">
+                Manage your owner credentials, restaurant business details, and store preferences.
+            </p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            {% if edit_mode %}
+                <a href="{% url 'restaurant_account_settings' %}" class="btn btn-outline-secondary btn-sm px-3">
+                    ✕ Cancel Editing
+                </a>
+            {% else %}
+                <a href="{% url 'restaurant_account_settings' %}?edit=1" class="btn btn-danger btn-sm px-3 fw-semibold">
+                    ✏️ Edit Profile
+                </a>
+                <a href="{% url 'location_restaurant' %}" class="btn btn-outline-danger btn-sm px-3">
+                    📍 Location Settings →
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if edit_mode %}
+    <!-- EDIT MODE FORM -->
+    <form method="post" action="{% url 'restaurant_account_settings' %}" enctype="multipart/form-data" novalidate>
+        {% csrf_token %}
+
+        <div class="row g-4">
+            <!-- Owner Credentials -->
+            <div class="col-lg-5">
+                <div class="card border-0 shadow-sm p-4 h-100">
+                    <h5 class="fw-bold mb-3 pb-2 border-bottom">👤 Owner Information</h5>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small" for="id_username_static">Username</label>
+                        <input type="text" id="id_username_static" class="form-control bg-light" value="{{ user.username }}" readonly disabled>
+                        <div class="form-text">Usernames cannot be changed once registered.</div>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label fw-semibold small" for="{{ form.first_name.id_for_label }}">First Name</label>
+                            {{ form.first_name }}
+                            {% if form.first_name.errors %}<div class="text-danger small mt-1">{{ form.first_name.errors|striptags }}</div>{% endif %}
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold small" for="{{ form.last_name.id_for_label }}">Last Name</label>
+                            {{ form.last_name }}
+                            {% if form.last_name.errors %}<div class="text-danger small mt-1">{{ form.last_name.errors|striptags }}</div>{% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small" for="{{ form.email.id_for_label }}">Email Address <span class="text-danger">*</span></label>
+                        {{ form.email }}
+                        {% if form.email.errors %}<div class="text-danger small mt-1">{{ form.email.errors|striptags }}</div>{% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small" for="{{ form.mobile_number.id_for_label }}">Owner Mobile Number</label>
+                        {{ form.mobile_number }}
+                        {% if form.mobile_number.errors %}<div class="text-danger small mt-1">{{ form.mobile_number.errors|striptags }}</div>{% endif %}
+                        <div class="form-text">Used for SMS order alerts and account security.</div>
+                    </div>
+
+                    <div class="alert alert-light border small mt-auto">
+                        <strong>Role:</strong> Restaurant Partner<br>
+                        <strong>Registered:</strong> {{ user.date_joined|date:"M d, Y" }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Restaurant Details -->
+            <div class="col-lg-7">
+                <div class="card border-0 shadow-sm p-4">
+                    <h5 class="fw-bold mb-3 pb-2 border-bottom">🍽️ Restaurant Details</h5>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small" for="{{ form.restaurant_name.id_for_label }}">Restaurant Name <span class="text-danger">*</span></label>
+                        {{ form.restaurant_name }}
+                        {% if form.restaurant_name.errors %}<div class="text-danger small mt-1">{{ form.restaurant_name.errors|striptags }}</div>{% endif %}
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small" for="{{ form.restaurant_type.id_for_label }}">Restaurant Type <span class="text-danger">*</span></label>
+                            {{ form.restaurant_type }}
+                            {% if form.restaurant_type.errors %}<div class="text-danger small mt-1">{{ form.restaurant_type.errors|striptags }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small" for="{{ form.cuisine_type.id_for_label }}">Cuisine Type <span class="text-danger">*</span></label>
+                            {{ form.cuisine_type }}
+                            {% if form.cuisine_type.errors %}<div class="text-danger small mt-1">{{ form.cuisine_type.errors|striptags }}</div>{% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small" for="{{ form.phone.id_for_label }}">Restaurant Phone <span class="text-danger">*</span></label>
+                        {{ form.phone }}
+                        {% if form.phone.errors %}<div class="text-danger small mt-1">{{ form.phone.errors|striptags }}</div>{% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small" for="{{ form.address.id_for_label }}">Business Address <span class="text-danger">*</span></label>
+                        {{ form.address }}
+                        {% if form.address.errors %}<div class="text-danger small mt-1">{{ form.address.errors|striptags }}</div>{% endif %}
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold small" for="{{ form.city.id_for_label }}">City <span class="text-danger">*</span></label>
+                            {{ form.city }}
+                            {% if form.city.errors %}<div class="text-danger small mt-1">{{ form.city.errors|striptags }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold small" for="{{ form.state.id_for_label }}">State <span class="text-danger">*</span></label>
+                            {{ form.state }}
+                            {% if form.state.errors %}<div class="text-danger small mt-1">{{ form.state.errors|striptags }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold small" for="{{ form.pincode.id_for_label }}">PIN Code <span class="text-danger">*</span></label>
+                            {{ form.pincode }}
+                            {% if form.pincode.errors %}<div class="text-danger small mt-1">{{ form.pincode.errors|striptags }}</div>{% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small" for="{{ form.description.id_for_label }}">Description</label>
+                        {{ form.description }}
+                        {% if form.description.errors %}<div class="text-danger small mt-1">{{ form.description.errors|striptags }}</div>{% endif %}
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small" for="{{ form.image.id_for_label }}">Cover Image</label>
+                            {% if restaurant.image %}
+                                <div class="mb-2">
+                                    <img src="{{ restaurant.image.url }}" alt="{{ restaurant.name }}" class="img-thumbnail" style="max-height: 80px;">
+                                </div>
+                            {% endif %}
+                            {{ form.image }}
+                            {% if form.image.errors %}<div class="text-danger small mt-1">{{ form.image.errors|striptags }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small" for="{{ form.logo.id_for_label }}">Restaurant Logo</label>
+                            {% if restaurant.logo %}
+                                <div class="mb-2">
+                                    <img src="{{ restaurant.logo.url }}" alt="Logo" class="img-thumbnail" style="max-height: 80px;">
+                                </div>
+                            {% endif %}
+                            {{ form.logo }}
+                            {% if form.logo.errors %}<div class="text-danger small mt-1">{{ form.logo.errors|striptags }}</div>{% endif %}
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-2 pt-3 border-top mt-4">
+                        <button type="submit" class="btn btn-danger px-4 fw-semibold">💾 Save Changes</button>
+                        <a href="{% url 'restaurant_account_settings' %}" class="btn btn-outline-secondary px-3">Cancel</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    {% else %}
+    <!-- VIEW MODE DETAILS -->
+    <div class="row g-4">
+        <!-- Owner Credentials Card -->
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm p-4 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                    <h5 class="fw-bold mb-0">👤 Owner Profile</h5>
+                    <a href="{% url 'restaurant_account_settings' %}?edit=1" class="btn btn-outline-danger btn-sm">Edit</a>
+                </div>
+
+                <dl class="row mb-0 g-2">
+                    <dt class="col-sm-5 text-muted small">Username</dt>
+                    <dd class="col-sm-7 fw-semibold">{{ user.username }}</dd>
+
+                    <dt class="col-sm-5 text-muted small">Full Name</dt>
+                    <dd class="col-sm-7">{{ user.get_full_name|default:"Not specified" }}</dd>
+
+                    <dt class="col-sm-5 text-muted small">Email</dt>
+                    <dd class="col-sm-7">{{ user.email }}</dd>
+
+                    <dt class="col-sm-5 text-muted small">Mobile Number</dt>
+                    <dd class="col-sm-7">{{ mobile_number|default:"Not provided" }}</dd>
+
+                    <dt class="col-sm-5 text-muted small">Account Role</dt>
+                    <dd class="col-sm-7"><span class="badge bg-danger-subtle text-danger">{{ user.get_role_display }}</span></dd>
+
+                    <dt class="col-sm-5 text-muted small">Joined Food_Ex</dt>
+                    <dd class="col-sm-7">{{ user.date_joined|date:"M d, Y" }}</dd>
+                </dl>
+
+                <hr class="my-4">
+
+                <!-- Account Security Quick Links -->
+                <h6 class="fw-bold mb-3">Security & Credentials</h6>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{% url 'password_change' %}" class="btn btn-outline-dark btn-sm">🔑 Change Password</a>
+                    <a href="{% url 'restaurant_dashboard' %}" class="btn btn-outline-secondary btn-sm">Owner Dashboard</a>
+                </div>
+
+                <div class="mt-4 pt-3 border-top">
+                    <h6 class="text-danger fw-bold mb-1">⚠️ Danger Zone</h6>
+                    <p class="text-muted small mb-2">Permanently delete your restaurant partner account and data.</p>
+                    <form method="post" action="{% url 'delete_account' %}" onsubmit="return confirm('Permanently delete your restaurant account? All menu items, earnings, and store data will be deleted.');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-danger btn-sm">Delete Account</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Restaurant Store Details Card -->
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm p-4 mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom flex-wrap gap-2">
+                    <div>
+                        <h5 class="fw-bold mb-0">🍽️ Restaurant Information</h5>
+                        <small class="text-muted">Public storefront information seen by customers</small>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-{% if restaurant.status == 'approved' %}success{% elif restaurant.status == 'pending' %}warning text-dark{% else %}danger{% endif %} p-2">
+                            {{ restaurant.get_status_display }}
+                        </span>
+                        <a href="{% url 'restaurant_account_settings' %}?edit=1" class="btn btn-outline-danger btn-sm">Edit Details</a>
+                    </div>
+                </div>
+
+                {% if restaurant.image or restaurant.logo %}
+                <div class="d-flex align-items-center gap-3 mb-4 p-3 bg-light rounded-3">
+                    {% if restaurant.logo %}
+                        <img src="{{ restaurant.logo.url }}" alt="Logo" class="rounded-circle border" style="width: 60px; height: 60px; object-fit: cover;">
+                    {% endif %}
+                    {% if restaurant.image %}
+                        <img src="{{ restaurant.image.url }}" alt="{{ restaurant.name }}" class="rounded border" style="max-height: 60px; max-width: 120px; object-fit: cover;">
+                    {% endif %}
+                    <div>
+                        <h5 class="mb-0 fw-bold">{{ restaurant.name }}</h5>
+                        <span class="text-muted small">{{ restaurant.cuisine_type }} · {{ restaurant.get_restaurant_type_display }}</span>
+                    </div>
+                </div>
+                {% endif %}
+
+                <dl class="row mb-0 g-2">
+                    <dt class="col-sm-4 text-muted small">Restaurant Name</dt>
+                    <dd class="col-sm-8 fw-bold">{{ restaurant.name }}</dd>
+
+                    <dt class="col-sm-4 text-muted small">Cuisine & Type</dt>
+                    <dd class="col-sm-8">{{ restaurant.cuisine_type }} ({{ restaurant.get_restaurant_type_display }})</dd>
+
+                    <dt class="col-sm-4 text-muted small">Contact Phone</dt>
+                    <dd class="col-sm-8">{{ restaurant.phone|default:"Not provided" }}</dd>
+
+                    <dt class="col-sm-4 text-muted small">Street Address</dt>
+                    <dd class="col-sm-8">{{ restaurant.address|default:"Not provided" }}</dd>
+
+                    <dt class="col-sm-4 text-muted small">City, State & PIN</dt>
+                    <dd class="col-sm-8">
+                        {{ restaurant.city|default:"--" }}, {{ restaurant.state|default:"--" }} - {{ restaurant.pincode|default:"--" }}
+                    </dd>
+
+                    <dt class="col-sm-4 text-muted small">Description</dt>
+                    <dd class="col-sm-8 text-secondary">{{ restaurant.description|default:"No description provided." }}</dd>
+
+                    {% if restaurant.fssai_number %}
+                    <dt class="col-sm-4 text-muted small">FSSAI Number</dt>
+                    <dd class="col-sm-8"><code>{{ restaurant.fssai_number }}</code></dd>
+                    {% endif %}
+                </dl>
+            </div>
+
+            <!-- Dedicated GPS Coordinates & Location Settings Link -->
+            <div class="card border-0 shadow-sm p-4 bg-white">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <span class="fs-5">📍</span>
+                            <h5 class="mb-0 fw-bold">GPS Location & Entrance Pin</h5>
+                        </div>
+                        <p class="text-muted small mb-1">
+                            Fixed kitchen coordinates used by delivery riders and nearby customer discovery.
+                        </p>
+                        <small class="text-secondary">
+                            Current Coordinates:
+                            {% if restaurant.latitude and restaurant.longitude %}
+                                <strong>{{ restaurant.latitude }}, {{ restaurant.longitude }}</strong>
+                            {% else %}
+                                <span class="text-warning fw-semibold">Not set yet</span>
+                            {% endif %}
+                        </small>
+                    </div>
+                    <a href="{% url 'location_restaurant' %}" class="btn btn-outline-danger btn-sm px-3 fw-semibold">
+                        📍 Manage GPS Location on Map →
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}
+

@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}
+    Food_Ex | Discover Great Food
+{% endblock %}
+
+{% block content %}
+<section class="delivery-hero">
+    <img class="delivery-hero-food delivery-hero-food-left" src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=900&q=84" alt="Colorful freshly prepared meal" fetchpriority="high">
+    <img class="delivery-hero-food delivery-hero-food-right" src="https://images.unsplash.com/photo-1579751626657-72bc17010498?auto=format&fit=crop&w=900&q=84" alt="Freshly baked pizza" fetchpriority="high">
+    <div class="delivery-hero-content container">
+        <span class="delivery-hero-kicker">FOOD_EX · GOOD FOOD, CLOSE BY</span>
+        <h1>Find your next<br>favorite meal.</h1>
+        <p>Discover local restaurants and the dishes worth staying in for.</p>
+        <form method="get" action="{% url 'restaurant_list' %}" class="delivery-search">
+            <label class="visually-hidden" for="homeFoodSearch">Search restaurants or dishes</label>
+            <input id="homeFoodSearch" type="search" name="q" placeholder="Search restaurant, dish or cuisine">
+            <button type="submit" class="btn">Search</button>
+        </form>
+        <div class="delivery-search-hints" aria-label="Popular searches">
+            <span>Popular:</span>
+            <a href="{% url 'restaurant_list' %}?q=Biryani">Biryani</a>
+            <a href="{% url 'restaurant_list' %}?q=Pizza">Pizza</a>
+            <a href="{% url 'restaurant_list' %}?q=Dessert">Dessert</a>
+        </div>
+    </div>
+</section>
+
+<section class="quick-order-section" id="categories">
+    <div class="container quick-order-grid">
+        <a class="quick-order-card" href="{% url 'restaurant_list' %}">
+            <div class="quick-order-copy">
+                <span>01 / RESTAURANTS</span>
+                <h2>Food delivery</h2>
+                <p>Explore menus from local kitchens.</p>
+                <strong>Browse restaurants <b aria-hidden="true">→</b></strong>
+            </div>
+            <img src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80" alt="Fresh meal from a local restaurant" loading="lazy">
+        </a>
+        <a class="quick-order-card" href="{% url 'restaurant_list' %}?q=Biryani">
+            <div class="quick-order-copy">
+                <span>02 / CROWD FAVORITE</span>
+                <h2>Big flavor</h2>
+                <p>Find a new favorite by cuisine.</p>
+                <strong>Explore biryani <b aria-hidden="true">→</b></strong>
+            </div>
+            <img src="https://images.unsplash.com/photo-1565557623262-b51c2513a641?auto=format&fit=crop&w=600&q=80" alt="Biryani with herbs and spices" loading="lazy">
+        </a>
+        <a class="quick-order-card" href="{% url 'restaurant_list' %}?q=Dessert">
+            <div class="quick-order-copy">
+                <span>03 / SOMETHING SWEET</span>
+                <h2>Sweet finish</h2>
+                <p>Leave a little room for dessert.</p>
+                <strong>Find desserts <b aria-hidden="true">→</b></strong>
+            </div>
+            <img src="https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=600&q=80" alt="Dessert topped with fresh berries" loading="lazy">
+        </a>
+    </div>
+</section>
+
+<section class="home-restaurants container" id="menu">
+    <div class="home-section-heading">
+        <div>
+            <span class="home-eyebrow">MADE AROUND HERE</span>
+            <h2>Local favorites</h2>
+        </div>
+        <a href="{% url 'restaurant_list' %}">Browse restaurants <span aria-hidden="true">→</span></a>
+    </div>
+
+    <div class="restaurant-grid">
+        {% for restaurant in restaurants %}
+            <article class="restaurant-feature">
+                <div class="restaurant-feature-top">
+                    <span class="restaurant-cuisine">{{ restaurant.cuisine_type }}</span>
+                    <span class="restaurant-index">0{{ forloop.counter }}</span>
+                </div>
+                <h3>{{ restaurant.name }}</h3>
+                <p class="restaurant-address">{{ restaurant.address }}</p>
+                <p class="restaurant-description">{{ restaurant.description|truncatechars:115 }}</p>
+                <a href="{% url 'restaurant_detail' restaurant.id %}" class="restaurant-menu-link">Explore menu <span aria-hidden="true">→</span></a>
+            </article>
+        {% empty %}
+            <div class="restaurants-empty">
+                <span class="home-eyebrow">FRESH START</span>
+                <h3>Your next favorite is still cooking.</h3>
+                <p>There are no restaurant listings yet. Check back as local kitchens join Food_Ex.</p>
+            </div>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="home-offers" id="offers">
+    <div class="container home-offers-inner">
+        <div>
+            <span class="home-eyebrow">THE FOOD_EX WAY</span>
+            <h2>Closer kitchens.<br>Better dinner plans.</h2>
+        </div>
+        <div class="home-offers-copy">
+            <p>Find neighborhood menus, choose what you love, and order without the extra steps.</p>
+            <a href="{% url 'restaurant_list' %}" class="btn btn-light">Browse menus <span aria-hidden="true">→</span></a>
+        </div>
+    </div>
+</section>
+
+<section class="home-about container" id="about">
+    <span class="home-eyebrow">ABOUT FOOD_EX</span>
+    <div class="home-about-row">
+        <h2>A little more local.<br>A lot more delicious.</h2>
+        <p>Food_Ex connects hungry neighbors with the independent restaurants cooking just around the corner.</p>
+    </div>
+</section>
+
+{% endblock %}

@@ -1,0 +1,395 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Admin GPS & Live Operations | Food_Ex{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<link rel="stylesheet" href="{% static 'location/css/location.css' %}">
+<style>
+.admin-order-item {
+    cursor: pointer;
+    border-left: 4px solid transparent;
+    transition: all 0.2s;
+}
+.admin-order-item:hover, .admin-order-item.active {
+    background-color: #f8fafc;
+    border-left-color: #e23744;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="container-fluid px-4 py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">🗺️ Live GPS Fleet & Operations Center</h2>
+            <p class="text-muted small mb-0">Real-time tracking of online delivery partners, active orders, and restaurants.</p>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <span id="livePulse" class="badge bg-success d-flex align-items-center gap-1">
+                <span class="spinner-grow spinner-grow-sm" role="status" style="width: 8px; height: 8px;"></span> Live Feed
+            </span>
+            <button id="btnRefresh" class="btn btn-outline-secondary btn-sm">Refresh Now</button>
+        </div>
+    </div>
+
+    <!-- Metrics Bar -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm p-3 bg-primary text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="small text-white-50">Online Delivery Partners</div>
+                        <h3 class="mb-0 fw-bold" id="metricPartners">{{ metrics.online_partners }}</h3>
+                    </div>
+                    <div class="fs-1">🛵</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm p-3 bg-danger text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="small text-white-50">Active Deliveries</div>
+                        <h3 class="mb-0 fw-bold" id="metricOrders">{{ metrics.active_deliveries }}</h3>
+                    </div>
+                    <div class="fs-1">📦</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm p-3 bg-dark text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="small text-white-50">Total Restaurants</div>
+                        <h3 class="mb-0 fw-bold">{{ metrics.total_restaurants }}</h3>
+                    </div>
+                    <div class="fs-1">🍽️</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm p-3 bg-secondary text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="small text-white-50">Total Customers</div>
+                        <h3 class="mb-0 fw-bold">{{ metrics.total_customers }}</h3>
+                    </div>
+                    <div class="fs-1">👥</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <!-- Live Map Container -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm p-3 h-100">
+                <div class="row g-2 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label small mb-1" for="mapContentFilter">Map layer</label>
+                        <select id="mapContentFilter" class="form-select form-select-sm">
+                            <option value="all">All</option>
+                            <option value="active_orders">Active Orders</option>
+                            <option value="restaurants">Restaurants</option>
+                            <option value="delivery_partners">Delivery Partners</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small mb-1" for="orderStatusFilter">Order status</label>
+                        <select id="orderStatusFilter" class="form-select form-select-sm">
+                            <option value="all">All statuses</option>
+                            <option value="preparing">Preparing</option>
+                            <option value="ready_for_pickup">Ready</option>
+                            <option value="assigned">Assigned</option>
+                            <option value="picked_up">Picked Up</option>
+                            <option value="out_for_delivery">On The Way</option>
+                            <option value="delivered">Delivered</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="adminLiveMap" class="foodex-map-container foodex-map-lg" data-default-lat="{{ setting.default_latitude|default:'17.6868' }}" data-default-lon="{{ setting.default_longitude|default:'83.2185' }}"></div>
+                <div class="d-flex justify-content-between align-items-center mt-2 px-1 text-muted small">
+                    <div>
+                        <span class="me-3">🍽️ Restaurant</span>
+                        <span class="me-3">🛵 Delivery Partner</span>
+                        <span class="me-3">🏠 Delivery Destination</span>
+                    </div>
+                    <span id="lastUpdatedText">Updated just now</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Order / Partner Inspector Sidebar -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm p-3 h-100">
+                <ul class="nav nav-pills nav-fill mb-3" id="adminTabs" role="tablist">
+                    <li class="nav-item">
+                        <button class="nav-link active py-1" id="tab-orders" data-bs-toggle="pill" data-bs-target="#content-orders">Active Orders</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link py-1" id="tab-partners" data-bs-toggle="pill" data-bs-target="#content-partners">Partners</button>
+                    </li>
+                </ul>
+
+                <div class="tab-content flex-grow-1 overflow-auto" style="max-height: 520px;">
+                    <!-- Orders List -->
+                    <div class="tab-pane fade show active" id="content-orders">
+                        <div id="ordersList" class="d-flex flex-column gap-2">
+                            <div class="text-center py-4 text-muted">Loading active deliveries...</div>
+                        </div>
+                    </div>
+
+                    <!-- Partners List -->
+                    <div class="tab-pane fade" id="content-partners">
+                        <label class="form-label small mb-1" for="partnerStatusFilter">Delivery status</label>
+                        <select id="partnerStatusFilter" class="form-select form-select-sm mb-2">
+                            <option value="all">All partners</option>
+                            <option value="available">Available</option>
+                            <option value="on_delivery">On Delivery</option>
+                            <option value="offline">Offline</option>
+                        </select>
+                        <div id="partnersList" class="d-flex flex-column gap-2">
+                            <div class="text-center py-4 text-muted">Loading online partners...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Focused Order Inspector Details Card -->
+                <div id="orderDetailBox" class="mt-3 p-3 bg-light rounded d-none">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <strong id="inspectCode" class="text-danger">#FE1001</strong>
+                        <span id="inspectStatus" class="badge bg-danger">ON THE WAY</span>
+                    </div>
+                    <div class="small text-muted mb-1">From: <strong id="inspectRest" class="text-dark">Restaurant</strong></div>
+                    <div class="small text-muted mb-1">To: <span id="inspectCust">Customer</span></div>
+                    <div class="small text-muted mb-2">Rider: <strong id="inspectPartner" class="text-dark">Rider Name</strong></div>
+                    <div class="d-flex justify-content-between pt-2 border-top small">
+                        <span>Distance: <strong id="inspectDist">2.4 km</strong></span>
+                        <span>ETA: <strong id="inspectEta">20 min</strong></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="{% static 'location/js/location.js' %}"></script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const mapEl = document.getElementById("adminLiveMap");
+    const defaultCenter = [
+        parseFloat(mapEl.dataset.defaultLat) || 17.6868,
+        parseFloat(mapEl.dataset.defaultLon) || 83.2185,
+    ];
+
+    const map = new FoodExMap("adminLiveMap", {
+        defaultCenter: defaultCenter,
+        defaultZoom: 12,
+        tileUrl: "{{ setting.tile_layer_url }}",
+    });
+
+    let currentLiveFeed = null;
+    let selectedOrderId = null;
+    const mapContentFilter = document.getElementById("mapContentFilter");
+    const orderStatusFilter = document.getElementById("orderStatusFilter");
+    const partnerStatusFilter = document.getElementById("partnerStatusFilter");
+
+    function escapeHtml(value) {
+        return String(value ?? "").replace(/[&<>"']/g, character => ({
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#39;",
+        })[character]);
+    }
+
+    function fetchLiveFeed() {
+        fetch("/api/location/admin/live/")
+            .then(res => {
+                if (!res.ok) throw new Error(`Live feed returned ${res.status}`);
+                return res.json();
+            })
+            .then(data => {
+                currentLiveFeed = data;
+                if (selectedOrderId && !data.active_orders.some(o => o.id === selectedOrderId)) {
+                    selectedOrderId = null;
+                    document.getElementById("orderDetailBox").classList.add("d-none");
+                }
+                renderLiveMap(data);
+                renderLists(data);
+                if (selectedOrderId) window.selectOrder(selectedOrderId);
+                document.getElementById("lastUpdatedText").textContent = "Updated " + new Date().toLocaleTimeString();
+                document.getElementById("metricPartners").textContent = data.metrics.online_partners;
+                document.getElementById("metricOrders").textContent = data.metrics.active_deliveries;
+            })
+            .catch(err => console.error("Admin live feed error:", err));
+    }
+
+    function renderLiveMap(data) {
+        // We only clear markers if no order is actively pinned
+        if (!selectedOrderId) {
+            map.clearMarkers();
+            map.drawRoute([]);
+            const layer = mapContentFilter.value;
+
+            // Plot restaurants
+            if (layer === "all" || layer === "restaurants" || layer === "active_orders") {
+                data.restaurants.forEach(r => {
+                if (r.latitude !== null && r.longitude !== null && layer !== "active_orders") {
+                    map.addMarker(`rest_${r.id}`, "restaurant", r.latitude, r.longitude, r.name,
+                        `<strong>${escapeHtml(r.name)}</strong><br>${escapeHtml(r.cuisine)}<br><small>${escapeHtml(r.address)}</small>`
+                    );
+                }
+                });
+            }
+
+            // Plot online partners
+            if (layer === "all" || layer === "delivery_partners") {
+                data.delivery_partners.forEach(p => {
+                if (p.is_online && p.latitude !== null && p.longitude !== null) {
+                    const statusText = p.assigned_order_id ? `Assigned to Order #${p.assigned_order_id}` : "Available";
+                    map.addMarker(`partner_${p.id}`, "delivery", p.latitude, p.longitude, p.name,
+                        `<strong>🛵 ${escapeHtml(p.name)}</strong><br>Status: ${escapeHtml(statusText)}<br>Vehicle: ${escapeHtml(p.vehicle || 'Standard')}`
+                    );
+                }
+                });
+            }
+
+            if (layer === "all" || layer === "active_orders") {
+                data.active_orders.forEach(o => {
+                    if (layer === "active_orders" && o.restaurant_lat !== null && o.restaurant_lon !== null) {
+                        map.addMarker(`order_rest_${o.id}`, "restaurant", o.restaurant_lat, o.restaurant_lon,
+                            o.restaurant_name, `<strong>${escapeHtml(o.restaurant_name)}</strong>`);
+                    }
+                    if (layer === "active_orders" && o.delivery_lat !== null && o.delivery_lon !== null) {
+                        map.addMarker(`order_partner_${o.id}`, "delivery", o.delivery_lat, o.delivery_lon,
+                            o.partner_name, `<strong>${escapeHtml(o.partner_name)}</strong>`);
+                    }
+                    if (o.customer_lat !== null && o.customer_lon !== null) {
+                        map.addMarker(`customer_${o.id}`, "customer", o.customer_lat, o.customer_lon,
+                            `Order #${o.code || o.id}`, `<strong>Delivery destination</strong><br>Order #${escapeHtml(o.code || o.id)}`);
+                    }
+                });
+            }
+        }
+    }
+
+    function renderLists(data) {
+        // Render Active Orders
+        const ordersEl = document.getElementById("ordersList");
+        const statusFilter = orderStatusFilter.value;
+        const visibleOrders = data.active_orders.filter(o => {
+            if (statusFilter === "all") return true;
+            if (statusFilter === "assigned") return ["assigned", "accepted"].includes(o.delivery_status);
+            if (statusFilter === "picked_up") return o.status === "picked_up";
+            if (statusFilter === "out_for_delivery") return o.status === "out_for_delivery";
+            return o.status === statusFilter;
+        });
+        if (visibleOrders.length === 0) {
+            ordersEl.innerHTML = `<p class="text-muted small text-center my-3">No active deliveries right now.</p>`;
+        } else {
+            ordersEl.innerHTML = visibleOrders.map(o => `
+                <div class="card p-2 border admin-order-item ${selectedOrderId === o.id ? 'active' : ''}" onclick="selectOrder(${Number(o.id)})">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <strong class="text-danger small">#${escapeHtml(o.code || o.id)}</strong>
+                        <span class="badge bg-danger-subtle text-danger small">${escapeHtml(o.status_display)}</span>
+                    </div>
+                    <div class="small fw-semibold text-truncate">${escapeHtml(o.restaurant_name)}</div>
+                    <div class="small text-muted text-truncate">Partner: ${escapeHtml(o.partner_name)}</div>
+                </div>
+            `).join("");
+        }
+
+        // Render Online Partners
+        const partnersEl = document.getElementById("partnersList");
+        const partnerFilter = partnerStatusFilter.value;
+        const visiblePartners = data.delivery_partners.filter(p =>
+            partnerFilter === "all" || p.status === partnerFilter
+        );
+        if (visiblePartners.length === 0) {
+            partnersEl.innerHTML = `<p class="text-muted small text-center my-3">No matching delivery partners.</p>`;
+        } else {
+            partnersEl.innerHTML = visiblePartners.map(p => `
+                <div class="card p-2 border">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <strong class="small">${escapeHtml(p.name)}</strong>
+                        <span class="badge ${p.status === 'on_delivery' ? 'bg-warning text-dark' : p.status === 'available' ? 'bg-success' : 'bg-secondary'} small">
+                            ${escapeHtml(p.status.replace("_", " "))}
+                        </span>
+                    </div>
+                    <small class="text-muted">${escapeHtml(p.vehicle || 'Motorbike')} · ${p.gps_fresh ? 'GPS Active' : 'No fresh GPS'}</small>
+                </div>
+            `).join("");
+        }
+    }
+
+    window.selectOrder = function(orderId) {
+        selectedOrderId = orderId;
+        const order = currentLiveFeed.active_orders.find(o => o.id === orderId);
+        if (!order) return;
+
+        // Populate detail box
+        const box = document.getElementById("orderDetailBox");
+        box.classList.remove("d-none");
+        document.getElementById("inspectCode").textContent = `#${order.code || order.id}`;
+        document.getElementById("inspectStatus").textContent = order.status_display.toUpperCase();
+        document.getElementById("inspectRest").textContent = order.restaurant_name;
+        document.getElementById("inspectCust").textContent = order.customer_name;
+        document.getElementById("inspectPartner").textContent = order.partner_name;
+        document.getElementById("inspectDist").textContent = order.distance ? `${order.distance} km` : "N/A";
+        document.getElementById("inspectEta").textContent = order.eta_minutes ? `${order.eta_minutes} min` : "N/A";
+
+        // Draw order on map
+        map.clearMarkers();
+        map.drawRoute([]);
+        const bounds = [];
+
+        if (order.restaurant_lat !== null && order.restaurant_lon !== null) {
+            map.addMarker("o_rest", "restaurant", order.restaurant_lat, order.restaurant_lon, order.restaurant_name,
+                `<strong>Restaurant</strong><br>${escapeHtml(order.restaurant_name)}`);
+            bounds.push({ latitude: order.restaurant_lat, longitude: order.restaurant_lon });
+        }
+
+        if (order.delivery_lat !== null && order.delivery_lon !== null) {
+            map.addMarker("o_partner", "delivery", order.delivery_lat, order.delivery_lon, order.partner_name,
+                `<strong>Delivery Partner</strong><br>${escapeHtml(order.partner_name)}`);
+            bounds.push({ latitude: order.delivery_lat, longitude: order.delivery_lon });
+        }
+
+        if (order.customer_lat !== null && order.customer_lon !== null) {
+            map.addMarker("o_cust", "customer", order.customer_lat, order.customer_lon, "Customer Destination",
+                `<strong>Delivery Address</strong><br>${escapeHtml(order.customer_name)}`);
+            bounds.push({ latitude: order.customer_lat, longitude: order.customer_lon });
+        }
+
+        // Draw connecting visual route
+        if (bounds.length >= 2) {
+            map.drawRoute(bounds);
+            map.fitBounds(bounds);
+        }
+    };
+
+    document.getElementById("btnRefresh").addEventListener("click", fetchLiveFeed);
+    [mapContentFilter, orderStatusFilter, partnerStatusFilter].forEach(filter => {
+        filter.addEventListener("change", () => {
+            selectedOrderId = null;
+            document.getElementById("orderDetailBox").classList.add("d-none");
+            if (currentLiveFeed) {
+                renderLiveMap(currentLiveFeed);
+                renderLists(currentLiveFeed);
+            }
+        });
+    });
+
+    // Initial fetch and 10-second polling
+    fetchLiveFeed();
+    setInterval(fetchLiveFeed, 10000);
+});
+</script>
+{% endblock %}

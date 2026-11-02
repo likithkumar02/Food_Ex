@@ -1,0 +1,131 @@
+{% extends "portals/customer_base.html" %}
+{% load static %}
+
+{% block title %}Order Details | Food_Ex{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<link rel="stylesheet" href="{% static 'location/css/location.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm p-4">
+                <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+                    <div>
+                        <h2 class="mb-1">Track your order</h2>
+                        <p class="text-muted mb-0">Order {{ order.code|default:order.id }}</p>
+                    </div>
+                    <span class="badge bg-danger-subtle text-danger fs-6" id="currentOrderStatus">{{ order.get_status_display }}</span>
+                </div>
+                <section class="order-tracking" id="orderTracking" data-status-url="{% url 'api_order_status' order.id %}" data-tracking-url="{% url 'api_order_tracking' order.id %}">
+                    <ol class="order-timeline" id="orderTimeline" aria-label="Order progress">
+                        <li data-order-state="placed">Order placed<time data-order-timestamp="placed"></time></li>
+                        <li data-order-state="accepted">Restaurant accepted<time data-order-timestamp="accepted"></time></li>
+                        <li data-order-state="preparing">Preparing food<time data-order-timestamp="preparing"></time></li>
+                        <li data-order-state="ready_for_pickup">Ready for pickup<time data-order-timestamp="ready_for_pickup"></time></li>
+                        <li data-order-state="finding_delivery_partner">Finding a delivery partner<time data-order-timestamp="finding_delivery_partner"></time></li>
+                        <li data-order-state="delivery_assigned">Partner offer sent<time data-order-timestamp="delivery_assigned"></time></li>
+                        <li data-order-state="assignment_failed">Assignment needs attention<time data-order-timestamp="assignment_failed"></time></li>
+                        <li data-order-state="delivery_partner_assigned">Partner assigned<time data-order-timestamp="delivery_partner_assigned"></time></li>
+                        <li data-order-state="arrived_at_pickup">Partner arrived at restaurant<time data-order-timestamp="arrived_at_pickup"></time></li>
+                        <li data-order-state="picked_up">Picked up<time data-order-timestamp="picked_up"></time></li>
+                        <li data-order-state="out_for_delivery">Out for delivery<time data-order-timestamp="out_for_delivery"></time></li>
+                        <li data-order-state="delivered">Delivered<time data-order-timestamp="delivered"></time></li>
+                        <li data-order-state="cancelled">Cancelled<time data-order-timestamp="cancelled"></time></li>
+                        <li data-order-state="rejected">Rejected<time data-order-timestamp="rejected"></time></li>
+                    </ol>
+                    {% if order.status == "cancelled" or order.status == "rejected" %}
+                        <div class="alert alert-danger" role="status">
+                            This order was {{ order.get_status_display|lower }}.
+                            {% if order.rejection_reason %}Reason: {{ order.get_rejection_reason_display }}.{% endif %}
+                            {% if order.rejection_note %}{{ order.rejection_note }}{% endif %}
+                        </div>
+                    {% endif %}
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <section class="border rounded p-3 h-100" aria-labelledby="restaurantDetailsHeading">
+                                <h3 class="h5" id="restaurantDetailsHeading">Restaurant</h3>
+                                <strong id="trackingRestaurantName">{{ order.restaurant.name }}</strong>
+                                <p class="text-muted mb-1" id="trackingRestaurantCuisine">{{ order.restaurant.cuisine_type }}</p>
+                                <p class="mb-2" id="trackingRestaurantAddress">{{ order.restaurant.address }}{% if order.restaurant.area %}, {{ order.restaurant.area }}{% endif %}{% if order.restaurant.city %}, {{ order.restaurant.city }}{% endif %}</p>
+                                {% if order.restaurant.phone %}
+                                    <a id="trackingRestaurantPhone" href="tel:{{ order.restaurant.phone }}">Call restaurant: {{ order.restaurant.phone }}</a>
+                                {% endif %}
+                            </section>
+                        </div>
+                        <div class="col-md-6">
+                            <section class="border rounded p-3 h-100" aria-labelledby="deliveryDetailsHeading">
+                                <h3 class="h5" id="deliveryDetailsHeading">Delivery</h3>
+                                <p class="mb-1" id="deliveryPartnerName">Looking for a delivery partner…</p>
+                                <p class="text-muted mb-1" id="deliveryPartnerMeta"></p>
+                                <p class="mb-1" id="deliveryAssignmentStatus">Delivery assignment pending</p>
+                                <p class="text-muted mb-0" id="deliveryLocation">Live location will appear when the partner is on the way.</p>
+                            </section>
+                        </div>
+                    </div>
+                    <div id="customerOrderTrackingMap" class="foodex-map-container foodex-map-lg mb-4" aria-label="Live delivery map"></div>
+                    <p id="trackingError" class="small text-danger" role="status"></p>
+                </section>
+
+                <section class="border-top pt-3 mb-3" aria-labelledby="deliveryAddressHeading">
+                    <h3 class="h5" id="deliveryAddressHeading">Delivery address</h3>
+                    <p class="mb-0">{{ order.delivery_address }}{% if order.delivery_area %}, {{ order.delivery_area }}{% endif %}{% if order.delivery_city %}, {{ order.delivery_city }}{% endif %}{% if order.delivery_pincode %} {{ order.delivery_pincode }}{% endif %}</p>
+                </section>
+
+                <h3 class="h5 mb-2">Items</h3>
+                {% for item in order.items.all %}
+                    <div class="d-flex justify-content-between border-bottom py-2">
+                        <span>{{ item.quantity }} x {{ item.name|default:item.menu_item.name }}</span>
+                        <span>₹{{ item.subtotal }}</span>
+                    </div>
+                {% endfor %}
+
+                <div class="d-flex justify-content-between mt-4 fw-bold">
+                    <span>Order total</span>
+                    <span class="text-danger">₹{{ order.total_price }}</span>
+                </div>
+                {% if order.estimated_preparation_minutes %}
+                    <p class="small text-muted mt-2 mb-0">Estimated preparation: {{ order.estimated_preparation_minutes }} minutes</p>
+                {% endif %}
+                {% with payment=order.payments.last %}
+                    {% if payment %}<p class="small text-muted mt-3 mb-0">Payment: {{ payment.get_status_display }} · {{ payment.get_payment_method_display }}</p>{% endif %}
+                {% endwith %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags|default:'info' }} mt-3" role="alert">{{ message }}</div>
+                {% endfor %}
+                {% if order.status == "delivered" %}
+                    {% if order.review %}
+                        <p class="mt-4 mb-0">Your rating: {{ order.review.rating }}/5{% if order.review.comment %} · {{ order.review.comment }}{% endif %}</p>
+                    {% else %}
+                        <form class="mt-4" method="post" action="{% url 'order_review' order.id %}">
+                            {% csrf_token %}
+                            <label class="form-label" for="reviewRating">Rate this restaurant</label>
+                            <select class="form-select mb-3" id="reviewRating" name="rating" required>
+                                <option value="">Choose a rating</option>
+                                <option value="5">5 - Excellent</option>
+                                <option value="4">4 - Good</option>
+                                <option value="3">3 - Okay</option>
+                                <option value="2">2 - Poor</option>
+                                <option value="1">1 - Bad</option>
+                            </select>
+                            <label class="form-label" for="reviewComment">Review</label>
+                            <textarea class="form-control mb-3" id="reviewComment" name="comment" rows="3" maxlength="1000"></textarea>
+                            <button class="btn btn-outline-dark" type="submit">Submit review</button>
+                        </form>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="{% static 'location/js/location.js' %}"></script>
+<script src="{% static 'orders/js/order-live-tracking.js' %}"></script>
+{% endblock %}

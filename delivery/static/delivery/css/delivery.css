@@ -1,0 +1,38 @@
+
+
+
+
+
+.empty-state {
+    padding: 60px 20px;
+    border-radius: 16px;
+    background: var(--food-light);
+    text-align: center;
+}
+
+
+
+
+
+
+.empty-state-icon {
+    font-size: 3rem;
+}
+
+
+
+
+
+
+.empty-state h3 {
+    margin-top: 15px;
+}
+
+
+
+
+
+
+.empty-state p {
+    color: var(--food-muted);
+}

@@ -1,0 +1,33 @@
+{% extends "portals/customer_base.html" %}
+
+{% block title %}Change Restaurant? | Food_Ex{% endblock %}
+
+{% block content %}
+<section class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm p-4">
+                <h2 class="mb-3">Your cart contains items from another restaurant.</h2>
+                <p class="text-muted">
+                    Your current cart is from <strong>{{ existing_restaurant.name }}</strong>.
+                    <strong>{{ menu_item.restaurant.name }}</strong> can only be ordered in a separate cart.
+                </p>
+                <p>Would you like to clear the current cart and add {{ menu_item.name }}?</p>
+                <div class="d-flex flex-wrap gap-2">
+                    <form method="post" action="{% url 'add_to_cart' menu_item.id %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="decision" value="clear">
+                        <button class="btn btn-danger" type="submit">Clear cart</button>
+                    </form>
+                    <form method="post" action="{% url 'add_to_cart' menu_item.id %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="decision" value="continue">
+                        <button class="btn btn-outline-secondary" type="submit">Continue with current cart</button>
+                    </form>
+                </div>
+                <a class="mt-3" href="{% url 'cart' %}">Return to cart</a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

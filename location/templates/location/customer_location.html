@@ -1,0 +1,331 @@
+{% extends "portals/customer_base.html" %}
+{% load static %}
+
+{% block title %}My Delivery Location | Food_Ex{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<link rel="stylesheet" href="{% static 'location/css/location.css' %}">
+{% endblock %}
+
+{% block content %}
+<div id="customerLocationDefaults" data-default-lat="{{ setting.default_latitude|default:'17.6868' }}" data-default-lon="{{ setting.default_longitude|default:'83.2185' }}" hidden></div>
+<section class="container py-4">
+    {% if latest_order %}
+    <section class="customer-order-tracking mb-4" aria-labelledby="customerOrderTrackingHeading">
+        <div class="customer-tracking-heading">
+            <div>
+                <p class="customer-tracking-eyebrow mb-1">YOUR LATEST ORDER</p>
+                <h1 id="customerOrderTrackingHeading" class="h3 mb-1">Order status</h1>
+                <p class="text-muted mb-0">Order {{ latest_order.code|default:latest_order.id }} · {{ latest_order.restaurant.name }}</p>
+            </div>
+            <span class="customer-tracking-status" id="currentOrderStatus">{{ latest_order.get_status_display }}</span>
+        </div>
+
+        <div
+            id="orderTracking"
+            class="customer-tracking-grid"
+            data-current-status="{{ latest_order.status }}"
+            data-tracking-url="{% url 'api_order_tracking' latest_order.id %}"
+        >
+            <section class="customer-tracking-progress" aria-labelledby="orderProgressHeading">
+                <h2 id="orderProgressHeading" class="h5">Order progress</h2>
+                <ol class="order-timeline customer-order-timeline" id="orderTimeline" aria-label="Order progress">
+                    <li data-order-state="placed"><span class="tracking-step-icon">●</span><span>Order placed</span><time data-order-timestamp="placed"></time></li>
+                    <li data-order-state="accepted"><span class="tracking-step-icon">✓</span><span>Restaurant accepted</span><time data-order-timestamp="accepted"></time></li>
+                    <li data-order-state="preparing"><span class="tracking-step-icon">▤</span><span>Preparing your order</span><time data-order-timestamp="preparing"></time></li>
+                    <li data-order-state="ready_for_pickup"><span class="tracking-step-icon">✓</span><span>Ready for pickup</span><time data-order-timestamp="ready_for_pickup"></time></li>
+                    <li data-order-state="finding_delivery_partner"><span class="tracking-step-icon">⌁</span><span>Finding a delivery partner</span><time data-order-timestamp="finding_delivery_partner"></time></li>
+                    <li data-order-state="delivery_assigned"><span class="tracking-step-icon">●</span><span>Partner offer sent</span><time data-order-timestamp="delivery_assigned"></time></li>
+                    <li data-order-state="assignment_failed"><span class="tracking-step-icon">!</span><span>Assignment needs attention</span><time data-order-timestamp="assignment_failed"></time></li>
+                    <li data-order-state="delivery_partner_assigned"><span class="tracking-step-icon">●</span><span>Partner assigned</span><time data-order-timestamp="delivery_partner_assigned"></time></li>
+                    <li data-order-state="arrived_at_pickup"><span class="tracking-step-icon">⌖</span><span>Partner at restaurant</span><time data-order-timestamp="arrived_at_pickup"></time></li>
+                    <li data-order-state="picked_up"><span class="tracking-step-icon">✓</span><span>Order picked up</span><time data-order-timestamp="picked_up"></time></li>
+                    <li data-order-state="out_for_delivery"><span class="tracking-step-icon">➜</span><span>On the way</span><time data-order-timestamp="out_for_delivery"></time></li>
+                    <li data-order-state="delivered"><span class="tracking-step-icon">✓</span><span>Delivered</span><time data-order-timestamp="delivered"></time></li>
+                    <li data-order-state="cancelled"><span class="tracking-step-icon">×</span><span>Cancelled</span><time data-order-timestamp="cancelled"></time></li>
+                    <li data-order-state="rejected"><span class="tracking-step-icon">×</span><span>Rejected</span><time data-order-timestamp="rejected"></time></li>
+                </ol>
+                <p id="trackingError" class="small text-danger" role="status"></p>
+                <a class="btn btn-danger customer-order-details-link" href="{% url 'order_detail' latest_order.id %}">Order details</a>
+            </section>
+
+            <section class="customer-tracking-map-panel" aria-labelledby="customerTrackingMapHeading">
+                <h2 id="customerTrackingMapHeading" class="h5">Live tracking</h2>
+                <div id="customerOrderTrackingMap" class="foodex-map-container customer-order-map" aria-label="Restaurant, delivery partner, and delivery address map"></div>
+                <div class="customer-tracking-summary">
+                    <strong id="trackingRestaurantName">{{ latest_order.restaurant.name }}</strong>
+                    <p id="trackingRestaurantCuisine" class="text-muted small mb-1">{{ latest_order.restaurant.cuisine_type }}</p>
+                    <p id="trackingRestaurantAddress" class="small mb-2">{{ latest_order.restaurant.address }}{% if latest_order.restaurant.area %}, {{ latest_order.restaurant.area }}{% endif %}{% if latest_order.restaurant.city %}, {{ latest_order.restaurant.city }}{% endif %}</p>
+                    {% if latest_order.restaurant.phone %}
+                        <a id="trackingRestaurantPhone" class="small d-inline-block mb-2" href="tel:{{ latest_order.restaurant.phone }}">Call restaurant: {{ latest_order.restaurant.phone }}</a>
+                    {% endif %}
+                    <p id="deliveryPartnerName" class="mb-1">Looking for a delivery partner…</p>
+                    <p id="deliveryPartnerMeta" class="text-muted small mb-1"></p>
+                    <p id="deliveryAssignmentStatus" class="small mb-1">Delivery assignment pending</p>
+                    <p id="deliveryLocation" class="text-muted small mb-0">Live partner location will appear when available.</p>
+                </div>
+            </section>
+        </div>
+    </section>
+    {% else %}
+    <section class="customer-order-empty mb-4">
+        <div>
+            <p class="customer-tracking-eyebrow mb-1">ORDER TRACKING</p>
+            <h1 class="h3 mb-1">No orders to track yet</h1>
+            <p class="text-muted mb-0">Once you place an order, its status and delivery progress will appear here.</p>
+        </div>
+        <a class="btn btn-danger" href="{% url 'customer_portal' %}">Find food</a>
+    </section>
+    {% endif %}
+
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h3 class="mb-0">📍 Delivery Location</h3>
+                    <button id="btnDetectGps" class="btn btn-outline-danger btn-gps btn-sm">
+                        <span>📍 Use Current Location</span>
+                    </button>
+                </div>
+                <div id="gpsFeedback" class="gps-feedback d-none mb-3"></div>
+
+                <div id="customerLocationMap" class="foodex-map-container mb-3"></div>
+                <small class="text-muted">Drag the pin on the map to set your exact doorstep location.</small>
+
+                <hr class="my-4">
+
+                <form id="profileLocationForm">
+                    {% csrf_token %}
+                    <h5 class="mb-3">Doorstep Details</h5>
+                    <div class="mb-3">
+                        <label class="form-label">Address Line / Flat / Building</label>
+                        <input type="text" id="custAddressLine" class="form-control" value="{{ profile.address_line|default:'' }}" placeholder="Flat 402, Sunshine Apartments">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Full Address / Landmark</label>
+                        <textarea id="custFullAddress" class="form-control" rows="2" placeholder="Near City Park, Beach Road">{{ profile.address|default:'' }}</textarea>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-5">
+                            <label class="form-label">City</label>
+                            <input type="text" id="custCity" class="form-control" value="{{ profile.city|default:'' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">State</label>
+                            <input type="text" id="custState" class="form-control" value="{{ profile.state|default:'' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Pincode</label>
+                            <input type="text" id="custPincode" class="form-control" value="{{ profile.pincode|default:'' }}">
+                        </div>
+                    </div>
+                    <input type="hidden" id="custLatitude" value="{{ profile.latitude|default:'' }}">
+                    <input type="hidden" id="custLongitude" value="{{ profile.longitude|default:'' }}">
+
+                    <button type="submit" id="btnSaveProfileLocation" class="btn btn-danger mt-4">Save Default Location</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm p-4">
+                <h4 class="mb-3">Saved Addresses</h4>
+                <div id="savedAddressesList" class="d-flex flex-column gap-2 mb-4">
+                    {% for addr in addresses %}
+                        <div class="saved-address-card" data-address-id="{{ addr.id }}">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <span class="address-tag">{{ addr.name }}</span>
+                                    <p class="mb-1 mt-2 fw-semibold text-dark">{{ addr.address_line|default:addr.address }}</p>
+                                    <small class="text-muted d-block">{{ addr.city }}{% if addr.pincode %}, {{ addr.pincode }}{% endif %}</small>
+                                </div>
+                                <button class="btn btn-sm text-danger btn-delete-address" data-id="{{ addr.id }}">✕</button>
+                            </div>
+                        </div>
+                    {% empty %}
+                        <p class="text-muted small">No saved addresses yet. Add one below!</p>
+                    {% endfor %}
+                </div>
+
+                <hr>
+
+                <h5 class="mb-3">Add New Address</h5>
+                <form id="newAddressForm">
+                    <div class="mb-2">
+                        <label class="form-label small">Label</label>
+                        <select id="newAddrName" class="form-select form-select-sm">
+                            <option value="Home">🏠 Home</option>
+                            <option value="Work">🏢 Work</option>
+                            <option value="Other">📍 Other</option>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">Address</label>
+                        <textarea id="newAddrText" class="form-control form-control-sm" rows="2" placeholder="Full address" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-outline-dark btn-sm w-100 mt-2">+ Save Address</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="{% static 'location/js/location.js' %}"></script>
+{% if latest_order %}<script src="{% static 'orders/js/order-live-tracking.js' %}"></script>{% endif %}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const feedbackEl = document.getElementById("gpsFeedback");
+    const latInput = document.getElementById("custLatitude");
+    const lonInput = document.getElementById("custLongitude");
+    const addrLineInput = document.getElementById("custAddressLine");
+    const fullAddrInput = document.getElementById("custFullAddress");
+    const cityInput = document.getElementById("custCity");
+    const stateInput = document.getElementById("custState");
+    const pinInput = document.getElementById("custPincode");
+    const locationDefaults = document.getElementById("customerLocationDefaults");
+
+    const defaultLat = parseFloat(latInput.value) || parseFloat(locationDefaults.dataset.defaultLat) || 17.6868;
+    const defaultLon = parseFloat(lonInput.value) || parseFloat(locationDefaults.dataset.defaultLon) || 83.2185;
+
+    const mapManager = new FoodExMap("customerLocationMap", {
+        defaultCenter: [defaultLat, defaultLon],
+        defaultZoom: 14,
+        tileUrl: "{{ setting.tile_layer_url }}",
+    });
+
+    const gpsManager = new GPSLocationManager();
+
+    function setFeedback(msg, type) {
+        feedbackEl.className = `gps-feedback status-${type}`;
+        feedbackEl.textContent = msg;
+        feedbackEl.classList.remove("d-none");
+    }
+
+    function updateMarkerAndFields(lat, lon, reverse = true) {
+        latInput.value = lat;
+        lonInput.value = lon;
+        mapManager.addMarker("custPin", "picker", lat, lon, "Your Doorstep", "Drag to adjust location", true, (newLat, newLon) => {
+            updateMarkerAndFields(newLat, newLon, true);
+        });
+        mapManager.setCenter(lat, lon, 15);
+
+        if (reverse) {
+            setFeedback("Fetching address details...", "loading");
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`, {
+                headers: { "Accept": "application/json" }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data && data.address) {
+                    const road = data.address.road || data.address.suburb || data.address.neighbourhood || "";
+                    if (!addrLineInput.value || addrLineInput.value.startsWith("Location")) {
+                        addrLineInput.value = road || data.display_name.split(",")[0];
+                    }
+                    fullAddrInput.value = data.display_name || "";
+                    if (data.address.city || data.address.town || data.address.village) {
+                        cityInput.value = data.address.city || data.address.town || data.address.village;
+                    }
+                    if (data.address.state) stateInput.value = data.address.state;
+                    if (data.address.postcode) pinInput.value = data.address.postcode;
+                    setFeedback("✓ Location detected & address updated", "success");
+                } else {
+                    setFeedback("✓ Location updated", "success");
+                }
+            })
+            .catch(() => {
+                setFeedback("✓ Location detected (manual address entry)", "success");
+            });
+        }
+    }
+
+    // Initialize marker
+    updateMarkerAndFields(defaultLat, defaultLon, false);
+
+    // GPS Button Click
+    document.getElementById("btnDetectGps").addEventListener("click", () => {
+        setFeedback("⏳ Detecting current location...", "loading");
+        gpsManager.getCurrentLocation(
+            (pos) => {
+                const lat = pos.coords.latitude;
+                const lon = pos.coords.longitude;
+                updateMarkerAndFields(lat, lon, true);
+            },
+            (errMsg) => {
+                setFeedback("⚠ " + errMsg, "error");
+            }
+        );
+    });
+
+    // Save Profile Location
+    document.getElementById("profileLocationForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const csrfToken = getCookie("csrftoken");
+        fetch("/api/location/customer/update/", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": csrfToken,
+            },
+            body: JSON.stringify({
+                latitude: latInput.value,
+                longitude: lonInput.value,
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                alert("Location preferences saved successfully!");
+            } else {
+                alert(data.message || "Failed to save location.");
+            }
+        });
+    });
+
+    // Save New Address
+    document.getElementById("newAddressForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const csrfToken = getCookie("csrftoken");
+        fetch("/api/location/customer/addresses/", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": csrfToken,
+            },
+            body: JSON.stringify({
+                name: document.getElementById("newAddrName").value,
+                address: document.getElementById("newAddrText").value,
+                latitude: latInput.value,
+                longitude: lonInput.value,
+                city: cityInput.value,
+                state: stateInput.value,
+                pincode: pinInput.value,
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.message || "Failed to save address.");
+            }
+        });
+    });
+
+    // Delete Address
+    document.querySelectorAll(".btn-delete-address").forEach(btn => {
+        btn.addEventListener("click", () => {
+            const id = btn.dataset.id;
+            const csrfToken = getCookie("csrftoken");
+            fetch(`/api/location/customer/addresses/${id}/`, {
+                method: "DELETE",
+                headers: { "X-CSRFToken": csrfToken }
+            }).then(() => location.reload());
+        });
+    });
+});
+</script>
+{% endblock %}

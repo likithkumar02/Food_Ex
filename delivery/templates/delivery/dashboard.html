@@ -1,0 +1,83 @@
+{% extends "portals/delivery_base.html" %}
+
+{% block title %}Delivery Dashboard | Food_Ex{% endblock %}
+
+{% block content %}
+<section class="container py-5" id="deliveryDashboard" data-online="{{ partner_profile.is_online|yesno:'true,false' }}">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card border-0 shadow-sm p-4">
+                <h2 class="mb-4">Delivery Dashboard</h2>
+                <p>Current status: <strong>{% if partner_profile.is_online %}Online{% else %}Offline{% endif %}</strong></p>
+                <p id="deliveryGpsStatus" class="small text-muted" aria-live="polite">
+                    {% if partner_profile.is_online %}Waiting for a fresh GPS fix...{% else %}Go online to share your location while available for deliveries.{% endif %}
+                </p>
+                <form method="post" action="{% url 'delivery_availability' %}" class="mb-4">
+                    {% csrf_token %}
+                    <input type="hidden" name="is_online" value="{% if partner_profile.is_online %}false{% else %}true{% endif %}">
+                    <button class="btn btn-dark" type="submit">Go {% if partner_profile.is_online %}offline{% else %}online{% endif %}</button>
+                </form>
+
+                <section
+                    id="deliveryRequestFeed"
+                    class="mb-4"
+                    data-requests-url="{% url 'api_delivery_requests' %}"
+                    data-accept-url="{% url 'accept_delivery' 0 %}"
+                    data-reject-url="{% url 'reject_delivery' 0 %}"
+                    aria-live="polite"
+                >
+                    <h3 class="h5">New delivery requests</h3>
+                    <div id="deliveryRequestList">
+                        <p class="small text-muted">Checking for delivery requests…</p>
+                    </div>
+                    <p id="deliveryRequestError" class="small text-danger" role="status"></p>
+                </section>
+
+                {% if assignments %}
+                    {% for assignment in assignments %}
+                        <div class="border rounded p-3 mb-3">
+                            <div class="d-flex justify-content-between">
+                                <h5>Order #{{ assignment.order.id }}</h5>
+                                <span class="badge bg-danger-subtle text-danger">{{ assignment.get_status_display }}</span>
+                            </div>
+                            <p class="mb-1"><strong>Pickup:</strong> {{ assignment.order.restaurant.name }} · {{ assignment.order.restaurant.address }}</p>
+                            {% if assignment.order.restaurant.phone %}
+                                <p class="small mb-1"><a href="tel:{{ assignment.order.restaurant.phone }}">Call restaurant: {{ assignment.order.restaurant.phone }}</a></p>
+                            {% endif %}
+                            <p class="mb-1"><strong>Customer:</strong> {{ assignment.order.user.get_full_name|default:assignment.order.user.username }}</p>
+                            <p class="mb-1"><strong>Drop-off:</strong> {{ assignment.order.delivery_address }}</p>
+                            {% if assignment.order.customer_phone %}
+                                <p class="small mb-0"><a href="tel:{{ assignment.order.customer_phone }}">Call customer: {{ assignment.order.customer_phone }}</a></p>
+                            {% endif %}
+                            <a class="btn btn-outline-dark btn-sm mt-3" href="{% url 'delivery_detail' assignment.id %}">Open delivery</a>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🚚</div>
+                        <h3>No deliveries assigned</h3>
+                        <p>Your assigned delivery tasks will appear here.</p>
+                    </div>
+                {% endif %}
+
+                <div class="mt-5 pt-3 border-top d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-danger mb-0">Delete Partner Account</h6>
+                        <small class="text-muted">Permanently close and delete your delivery partner profile.</small>
+                    </div>
+                    <form method="post" action="{% url 'delete_account' %}" onsubmit="return confirm('Permanently delete your delivery partner account? This cannot be undone.');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-danger btn-sm">Delete Account</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+{% load static %}
+<script src="{% static 'location/js/location.js' %}"></script>
+<script src="{% static 'delivery/js/dashboard.js' %}"></script>
+{% endblock %}

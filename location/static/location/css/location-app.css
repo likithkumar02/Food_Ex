@@ -1,0 +1,61 @@
+
+
+.food-navbar .container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+
+
+@media (max-width: 767.98px) {
+
+    .food-navbar .container {
+        flex-wrap: wrap;
+        justify-content: center;
+        padding-top: 12px;
+        padding-bottom: 12px;
+    }}
+
+
+
+.portal-actions .btn,
+.portal-auth-panel .btn {
+    min-height: 46px;
+}
+
+
+
+.workspace-header .btn {
+    margin-top: 12px;
+}
+
+
+
+.auth-panel .form-control {
+    min-height: 48px;
+    border-color: #d9d6d2;
+    border-radius: 3px;
+}
+
+
+
+.profile-details .form-control {
+    min-height: 46px;
+    border-color: #d9d6d2;
+    border-radius: 3px;
+}
+
+
+
+.profile-details textarea.form-control {
+    min-height: 100px;
+}
+
+
+
+.home-offers-copy .btn {
+    border-radius: 2px;
+    font-weight: 700;
+}

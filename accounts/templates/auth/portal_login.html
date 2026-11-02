@@ -1,0 +1,36 @@
+{% extends portal.base_template %}
+
+{% block title %}{{ portal.label }} Log In | Food_Ex{% endblock %}
+
+{% block site_header %}
+{% if portal.label != "Customer" %}{{ block.super }}{% endif %}
+{% endblock %}
+
+{% block content %}
+<section class="portal-auth container py-5">
+    <div class="portal-auth-panel">
+        <a class="portal-back" href="{% url portal.portal_url %}">← {{ portal.label }} portal</a>
+        <p class="portal-eyebrow">FOOD_EX / {{ portal.label|upper }}</p>
+        <h1>{% if portal.label == "Customer" %}Welcome back{% else %}Log in to your workspace{% endif %}</h1>
+        <p class="portal-intro">
+            {% if portal.label == "Customer" %}Log in to continue discovering local restaurants and ordering your favorites.{% elif portal.label == "Restaurant Partner" %}Manage your restaurant menu, orders, and service using your partner account.{% else %}Use the account registered for this portal.{% endif %}
+        </p>
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }}" role="alert">{{ message }}</div>
+        {% endfor %}
+        <form id="portalLoginForm" method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label class="form-label" for="portalEmail">Email</label>
+                <input class="form-control" id="portalEmail" name="email" type="email" autocomplete="email" required>
+            </div>
+            <div class="mb-4">
+                <label class="form-label" for="portalPassword">Password</label>
+                <input class="form-control" id="portalPassword" name="password" type="password" autocomplete="current-password" required>
+            </div>
+            <button class="btn btn-dark w-100" type="submit">Log in</button>
+        </form>
+        <p class="portal-auth-foot">New to Food_Ex? <a href="{% url portal.register_url %}">Create a {{ portal.label|lower }} account</a></p>
+    </div>
+</section>
+{% endblock %}

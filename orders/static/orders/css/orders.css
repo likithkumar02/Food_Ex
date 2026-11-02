@@ -1,0 +1,232 @@
+
+
+
+
+.restaurant-order-items {
+    margin: 12px 0;
+}
+
+
+
+
+
+.restaurant-order-item {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid #e9e6e1;
+}
+
+
+
+
+
+.restaurant-order-item img {
+    width: 44px;
+    height: 40px;
+    border-radius: 4px;
+    object-fit: cover;
+}
+
+.restaurant-order-progress {
+    margin: 16px 0;
+    padding: 14px;
+    border-radius: 10px;
+    background: #faf8f6;
+}
+
+.restaurant-order-timeline {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    margin: 12px 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.restaurant-order-timeline li {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+    color: #85878b;
+    font-size: 0.78rem;
+}
+
+.restaurant-order-timeline li.is-complete {
+    color: #386c55;
+}
+
+.restaurant-order-timeline li.is-current {
+    color: #bd243b;
+    font-weight: 800;
+}
+
+.restaurant-timeline-marker {
+    display: inline-grid;
+    width: 24px;
+    height: 24px;
+    flex: 0 0 24px;
+    place-items: center;
+    border: 1px solid #d6d4d0;
+    border-radius: 50%;
+    background: #fff;
+    font-size: 0.7rem;
+}
+
+.restaurant-order-timeline li.is-complete .restaurant-timeline-marker {
+    border-color: #4f8c70;
+    background: #4f8c70;
+    color: #fff;
+}
+
+.restaurant-order-timeline li.is-current .restaurant-timeline-marker {
+    border-color: #bd243b;
+    background: #bd243b;
+    color: #fff;
+}
+
+.restaurant-delivery-summary {
+    margin: 12px 0;
+    padding: 12px;
+    border: 1px solid #e8e4df;
+    border-radius: 10px;
+}
+
+.restaurant-order-card form {
+    margin: 0;
+}
+
+.restaurant-order-card form[action*="/reject/"] {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.restaurant-order-card form[action*="/reject/"] .form-select {
+    width: auto;
+    min-width: 200px;
+}
+
+.restaurant-order-card form[action*="/reject/"] .form-control {
+    width: min(220px, 100%);
+}
+
+.restaurant-order-card form[action*="/reject/"] .btn {
+    align-self: flex-start;
+}
+
+.restaurant-order-card > .d-flex form[action*="/cancel/"] {
+    display: block;
+}
+
+@media (max-width: 760px) {
+    .restaurant-order-timeline {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+.order-tracking-current {
+    color: #666e67;
+}
+
+
+
+
+
+.order-timeline {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+    margin: 20px 0 24px;
+    padding: 0;
+    list-style: none;
+}
+
+
+
+
+
+.order-timeline li {
+    min-height: 58px;
+    padding: 10px;
+    border-top: 3px solid #dedbd5;
+    color: #737a74;
+    font-size: 0.82rem;
+}
+
+
+
+
+
+.order-timeline li.is-complete {
+    border-color: #2f7960;
+    color: #285f4c;
+}
+
+
+
+
+
+.order-timeline li.is-current {
+    font-weight: 800;
+}
+
+.order-timeline time {
+    display: block;
+    margin-top: 4px;
+    color: #777b82;
+    font-size: 0.7rem;
+    font-weight: 400;
+}
+
+
+
+
+
+@media (max-width: 760px) {
+
+    .order-timeline {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }}
+
+
+
+
+
+
+.empty-state {
+    padding: 60px 20px;
+    border-radius: 16px;
+    background: var(--food-light);
+    text-align: center;
+}
+
+
+
+
+
+
+.empty-state-icon {
+    font-size: 3rem;
+}
+
+
+
+
+
+
+.empty-state h3 {
+    margin-top: 15px;
+}
+
+
+
+
+
+
+.empty-state p {
+    color: var(--food-muted);
+}

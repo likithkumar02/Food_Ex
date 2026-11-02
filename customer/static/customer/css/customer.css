@@ -1,0 +1,392 @@
+
+
+
+
+
+.hero-label {
+    color: var(--food-red);
+    font-weight: 700;
+    letter-spacing: 2px;
+}
+
+
+
+
+
+.profile-page {
+    max-width: 1040px;
+    padding-top: 60px;
+    padding-bottom: 72px;
+}
+
+
+
+
+
+.profile-heading,
+.profile-details-heading {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 24px;
+}
+
+
+
+
+
+.profile-heading {
+    margin-bottom: 30px;
+}
+
+
+
+
+
+.profile-heading h1 {
+    margin: 6px 0 0;
+    font-size: 2.3rem;
+    font-weight: 800;
+}
+
+
+
+
+
+.profile-heading p,
+.profile-details-heading span {
+    color: var(--food-muted);
+}
+
+
+
+
+
+.profile-layout {
+    display: grid;
+    grid-template-columns: 280px minmax(0, 1fr);
+    border-top: 1px solid #e8e5e2;
+    border-bottom: 1px solid #e8e5e2;
+}
+
+
+
+
+
+.profile-identity {
+    padding: 36px 28px 36px 0;
+    border-right: 1px solid #e8e5e2;
+}
+
+
+
+
+
+.profile-avatar-wrap {
+    display: grid;
+    width: 112px;
+    aspect-ratio: 1;
+    overflow: hidden;
+    border-radius: 50%;
+    background: #f4d8cf;
+    place-items: center;
+}
+
+
+
+
+
+.profile-avatar,
+.profile-avatar-fallback {
+    grid-area: 1 / 1;
+    width: 100%;
+    height: 100%;
+}
+
+
+
+
+
+.profile-avatar {
+    object-fit: cover;
+}
+
+
+
+
+
+.profile-avatar-fallback {
+    display: grid;
+    color: #71372e;
+    font-size: 1.8rem;
+    font-weight: 800;
+    place-items: center;
+}
+
+
+
+
+
+.profile-identity h2 {
+    margin: 20px 0 5px;
+    font-size: 1.25rem;
+    font-weight: 750;
+    overflow-wrap: anywhere;
+}
+
+
+
+
+
+.profile-identity p {
+    color: var(--food-muted);
+    overflow-wrap: anywhere;
+}
+
+
+
+
+
+.profile-role {
+    display: inline-block;
+    padding: 5px 9px;
+    background: #f2f2ef;
+    color: #4a514d;
+    font-size: 0.78rem;
+    text-transform: capitalize;
+}
+
+
+
+
+
+.profile-details {
+    padding: 36px 0 36px 36px;
+}
+
+
+
+
+
+.profile-details-heading {
+    margin-bottom: 24px;
+}
+
+
+
+
+
+.profile-details-heading h2 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 750;
+}
+
+
+
+
+
+.profile-details .form-control {
+    min-height: 46px;
+    border-color: #d9d6d2;
+    border-radius: 3px;
+}
+
+
+
+
+
+.profile-details textarea.form-control {
+    min-height: 100px;
+}
+
+
+
+
+
+.profile-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 26px;
+}
+
+
+
+
+/* Customer navigation keeps the main Food_Ex header styling while retaining customer controls. */
+.customer-site-navbar {
+    padding: 14px 0;
+}
+
+.customer-site-navbar > .container {
+    display: grid;
+    grid-template-columns: auto minmax(210px, 1fr) auto;
+    gap: 16px;
+}
+
+.customer-site-navbar .food-logo {
+    margin-right: 0;
+}
+
+.customer-site-navbar .customer-search-box {
+    display: flex;
+    min-width: 0;
+    min-height: 46px;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 5px 4px 14px;
+    border: 1px solid rgba(36, 42, 40, 0.12);
+    border-radius: 999px;
+    background: #fff;
+}
+
+.customer-site-navbar .customer-search-icon {
+    color: #6c757d;
+    font-size: 1.35rem;
+    line-height: 1;
+}
+
+.customer-site-navbar .customer-search-box input {
+    width: 100%;
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    color: #202124;
+}
+
+.customer-site-navbar .customer-search-box input::placeholder {
+    color: #6c757d;
+}
+
+.customer-site-navbar .customer-search-submit {
+    display: grid;
+    flex: 0 0 36px;
+    width: 36px;
+    height: 36px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--food-red);
+    color: #fff;
+    place-items: center;
+}
+
+.customer-site-actions {
+    gap: 8px;
+}
+
+.customer-site-actions .header-link,
+.customer-site-actions .header-cta {
+    min-height: 40px;
+    padding: 8px 12px;
+    white-space: nowrap;
+}
+
+.customer-site-actions .customer-login-link {
+    font-size: 0.9rem;
+}
+
+.customer-site-actions .customer-signup-link {
+    margin-left: 0;
+    font-size: 0.9rem;
+    color: #fff;
+}
+
+.customer-site-actions .customer-location-action {
+    gap: 6px;
+}
+
+@media (max-width: 1199.98px) {
+    .customer-site-navbar > .container {
+        grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .customer-site-navbar .customer-search-box {
+        grid-column: 1 / -1;
+        grid-row: 2;
+    }
+
+    .customer-site-actions {
+        justify-content: flex-end;
+        flex-wrap: wrap;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .customer-site-navbar > .container {
+        grid-template-columns: minmax(0, 1fr);
+        justify-items: stretch;
+        gap: 12px;
+    }
+
+    .customer-site-navbar .food-logo {
+        justify-self: center;
+    }
+
+    .customer-site-actions {
+        justify-content: center;
+    }
+
+    .customer-site-actions .header-link,
+    .customer-site-actions .header-cta {
+        flex: 1 1 125px;
+    }
+}
+
+
+
+@media (max-width: 576px) {
+
+    .profile-page {
+        padding-top: 36px;
+    }}
+
+
+
+
+
+
+@media (max-width: 576px) {
+
+    .profile-heading,
+    .profile-details-heading,
+    .home-band-inner,
+    .about-strip {
+        align-items: flex-start;
+        flex-direction: column;
+    }}
+
+
+
+
+
+
+@media (max-width: 576px) {
+
+    .profile-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }}
+
+
+
+
+
+
+@media (max-width: 576px) {
+
+    .profile-identity {
+        padding: 26px 0;
+        border-right: 0;
+        border-bottom: 1px solid #e8e5e2;
+    }}
+
+
+
+
+
+
+@media (max-width: 576px) {
+
+    .profile-details {
+        padding: 26px 0;
+    }}

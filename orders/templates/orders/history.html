@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Order History | Food_Ex{% endblock %}
+
+{% block content %}
+<section class="container py-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card border-0 shadow-sm p-4">
+                <h2 class="mb-4">Order History</h2>
+
+                {% if orders %}
+                    {% for order in orders %}
+                        <div class="border rounded p-3 mb-3">
+                            <div class="d-flex justify-content-between">
+                                <h5>Order #{{ order.code }}</h5>
+                                <span class="badge bg-danger-subtle text-danger">{{ order.get_status_display }}</span>
+                            </div>
+                            <p class="mb-1 text-muted">{{ order.restaurant.name }}</p>
+                            <p class="mb-0">₹{{ order.total_price }}</p>
+                            <a class="btn btn-outline-danger btn-sm mt-2" href="{% url 'customer_order_track' order.id %}">Track order</a>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📦</div>
+                        <h3>No orders yet</h3>
+                        <p>Your recent orders will appear here.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

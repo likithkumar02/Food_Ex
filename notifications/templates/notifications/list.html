@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Notifications | Food_Ex{% endblock %}
+
+{% block content %}
+<section class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <header class="mb-4">
+                <p class="portal-eyebrow">FOOD_EX / ACCOUNT</p>
+                <h1 class="h2">Notifications</h1>
+            </header>
+            {% for notification in notifications %}
+                <article class="workspace-row {% if not notification.is_read %}is-unread{% endif %}">
+                    <span>
+                        <strong>{{ notification.title }}</strong>
+                        <small>{{ notification.message }} · {{ notification.created_at|date:"M j, H:i" }}</small>
+                    </span>
+                    <span class="workspace-row-end">
+                        {% if notification.link %}<a href="{{ notification.link }}">Open</a>{% endif %}
+                        {% if not notification.is_read %}
+                            <form method="post" action="{% url 'mark_notification_read' notification.id %}">
+                                {% csrf_token %}
+                                <button class="btn btn-sm btn-outline-dark" type="submit">Mark read</button>
+                            </form>
+                        {% else %}
+                            <span>Read</span>
+                        {% endif %}
+                    </span>
+                </article>
+            {% empty %}
+                <div class="workspace-empty">You have no notifications yet.</div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}Checkout | Food_Ex{% endblock %}
+
+{% block content %}
+<section class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm p-4">
+                <h2 class="mb-4">Checkout</h2>
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags|default:'info' }}" role="alert">{{ message }}</div>
+                {% endfor %}
+
+                <form method="post">
+                    {% csrf_token %}
+
+                    {% if addresses %}
+                    <div class="mb-3">
+                        <label for="saved_address" class="form-label">Saved delivery address</label>
+                        <select class="form-select" id="saved_address" name="address_id">
+                            <option value="">Enter a different address</option>
+                            {% for address in addresses %}
+                            <option value="{{ address.id }}" data-address="{{ address.address|escape }}">
+                                {{ address.name }} — {{ address.address }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
+                    <div class="mb-3">
+                        <label for="delivery_address" class="form-label">Delivery address</label>
+                        <textarea class="form-control" name="delivery_address" rows="4" required></textarea>
+                    </div>
+
+                    <div class="border rounded p-3 mb-3">
+                        <p class="mb-2"><strong>Restaurant:</strong> {{ cart.items.first.menu_item.restaurant.name }}</p>
+                        <p class="mb-0"><strong>Total:</strong> ₹{{ cart.total_price }}</p>
+                    </div>
+
+                    <button type="submit" class="btn btn-danger w-100">Continue to payment</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const savedAddress = document.getElementById("saved_address");
+    const addressField = document.querySelector("[name='delivery_address']");
+    if (!savedAddress || !addressField) return;
+
+    savedAddress.addEventListener("change", () => {
+        const selected = savedAddress.options[savedAddress.selectedIndex];
+        if (savedAddress.value) {
+            addressField.value = selected.dataset.address || "";
+        }
+    });
+});
+</script>
+{% endblock %}

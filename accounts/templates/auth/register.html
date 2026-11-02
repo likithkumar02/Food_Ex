@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Create account | Food_Ex{% endblock %}
+
+{% block site_header %}{% endblock %}
+
+{% block content %}
+<section class="auth-shell container">
+    <div class="auth-panel">
+        <a class="auth-wordmark" href="{% url 'home' %}">FOOD_EX</a>
+        <p class="auth-kicker">A better meal is around the corner</p>
+        <h1>Create your Food_Ex account</h1>
+
+        <div id="registerMessage" class="form-message" role="alert" aria-live="polite" hidden></div>
+
+        <form id="registerForm" method="post" novalidate>
+            {% csrf_token %}
+            <div class="mb-3">
+                <label class="form-label" for="registerName">Full name</label>
+                <input class="form-control" id="registerName" name="name" type="text" autocomplete="name" maxlength="150" required>
+                <div class="invalid-feedback">Enter your name.</div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="registerEmail">Email</label>
+                <input class="form-control" id="registerEmail" name="email" type="email" autocomplete="email" required>
+                <div class="invalid-feedback">Enter a valid email address.</div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="registerPhone">Mobile number</label>
+                <input class="form-control" id="registerPhone" name="phone" type="tel" autocomplete="tel" pattern="[+]?[0-9]{7,15}" maxlength="15" required>
+                <div class="invalid-feedback">Enter a valid phone number.</div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="registerPassword">Password</label>
+                <input class="form-control" id="registerPassword" name="password" type="password" autocomplete="new-password" minlength="8" required>
+                <div class="invalid-feedback">Use at least 8 characters.</div>
+            </div>
+            <div class="mb-4">
+                <label class="form-label" for="registerConfirmPassword">Confirm password</label>
+                <input class="form-control" id="registerConfirmPassword" name="confirm_password" type="password" autocomplete="new-password" required>
+                <div class="invalid-feedback">Passwords must match.</div>
+            </div>
+            <button class="btn btn-danger auth-submit" type="submit">Create account</button>
+        </form>
+
+        <p class="auth-switch">Already have an account? <a href="{% url 'login' %}">Log in</a></p>
+    </div>
+    <aside class="auth-aside" aria-label="Food_Ex delivery">
+        <span class="auth-aside-mark">FE / 01</span>
+        <p>Good things<br>are on the way.</p>
+        <span class="auth-aside-caption">LOCAL FOOD, RIGHT ON TIME</span>
+    </aside>
+</section>
+{% endblock %}

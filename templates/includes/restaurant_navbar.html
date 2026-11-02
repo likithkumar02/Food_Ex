@@ -1,0 +1,49 @@
+<nav class="navbar navbar-expand-lg food-navbar" aria-label="Restaurant Partner Navigation">
+    <div class="container">
+        <a class="navbar-brand food-logo" href="{% url 'restaurant_portal' %}">
+            <span class="food-logo-mark" aria-hidden="true">F</span>
+            <span class="food-logo-name">FOOD_EX<small>RESTAURANT PARTNER</small></span>
+        </a>
+        <div class="header-actions ms-auto d-flex align-items-center">
+        {% if user.is_authenticated and user.role == "restaurant_owner" %}
+            <a class="header-link" href="{% url 'restaurant_dashboard' %}">Dashboard</a>
+            <a class="header-link" href="{% url 'restaurant_order_management' %}">Orders</a>
+            <a class="header-link" href="{% url 'restaurant_management' %}">Menu</a>
+            <a class="header-link" href="{% url 'notification_center' %}">Notifications</a>
+            <details class="customer-account-menu">
+                <summary aria-label="Open restaurant owner account menu">
+                    {% if user.customer_profile.profile_image %}
+                        <img class="customer-account-avatar" src="{{ user.customer_profile.profile_image.url }}" alt="">
+                    {% else %}
+                        <span class="customer-account-avatar customer-account-avatar-fallback" aria-hidden="true">{{ user.first_name|default:user.username|first|upper }}</span>
+                    {% endif %}
+                    <span class="customer-account-trigger-name">{{ user.first_name|default:user.username }}</span>
+                    <span class="customer-account-caret" aria-hidden="true">▾</span>
+                </summary>
+                <div class="customer-account-dropdown">
+                    <div class="customer-account-details">
+                        <strong>{{ user.get_full_name|default:user.username }}</strong>
+                        <span>{{ user.email }}</span>
+                    </div>
+                    <a href="{% url 'restaurant_dashboard' %}">Owner dashboard</a>
+                    <a href="{% url 'location_restaurant' %}">📍 Location Settings</a>
+                    <a href="{% url 'restaurant_account_settings' %}">⚙️ Account settings</a>
+                    <form method="post" action="{% url 'logout' %}">
+                        {% csrf_token %}
+                        <button type="submit">Log out</button>
+                    </form>
+                    <hr class="my-1">
+                    <form method="post" action="{% url 'delete_account' %}" onsubmit="return confirm('Permanently delete your restaurant partner account? This cannot be undone.');">
+                        {% csrf_token %}
+                        <button type="submit" class="text-danger fw-semibold">Delete account</button>
+                    </form>
+                </div>
+            </details>
+        {% else %}
+            <a class="header-link" href="{% url 'restaurant_login' %}">Owner log in</a>
+            <a class="header-cta" href="{% url 'restaurant_register' %}">Register restaurant</a>
+        {% endif %}
+        </div>
+    </div>
+</nav>
+

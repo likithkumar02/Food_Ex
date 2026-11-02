@@ -1,0 +1,366 @@
+{% extends "portals/restaurant_base.html" %}
+{% load static %}
+
+{% block title %}Restaurant Location | Food_Ex{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<link rel="stylesheet" href="{% static 'location/css/location.css' %}">
+{% endblock %}
+
+{% block content %}
+<div id="restaurantLocationDefaults" data-default-lat="{{ setting.default_latitude|default:'17.6868' }}" data-default-lon="{{ setting.default_longitude|default:'83.2185' }}" hidden></div>
+<section class="container py-4">
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h3 class="mb-1">🍽️ Restaurant GPS Location</h3>
+                        <p class="text-muted small mb-0">Customers and delivery partners use this exact spot to find your kitchen.</p>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <a href="{% url 'restaurant_account_settings' %}" class="btn btn-outline-secondary btn-sm px-3 py-2">
+                            ← Account Settings
+                        </a>
+                        <button id="btnDetectGps" class="btn btn-danger btn-gps fw-semibold px-3 py-2">
+                            <span>📍 Use My Current Location</span>
+                        </button>
+                    </div>
+                </div>
+                <div id="gpsFeedback" class="gps-feedback d-none mb-3"></div>
+                <div id="saveAlertContainer" class="mb-3"></div>
+
+                <div id="restaurantMap" class="foodex-map-container mb-2" style="height: 380px;"></div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <small class="text-muted">💡 <strong>Tip:</strong> Click anywhere on the map or drag the restaurant pin (🍽️) to set your exact entrance.</small>
+                    <span id="gpsAccuracyBadge" class="badge bg-light text-secondary border d-none">GPS accuracy: <span id="gpsAccuracyVal">--</span></span>
+                </div>
+
+                <hr class="my-4">
+
+                <form id="restaurantLocationForm">
+                    {% csrf_token %}
+                    <h5 class="mb-3">Confirm Coordinates & Address</h5>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold" for="restLat">Latitude <span class="text-danger">*</span></label>
+                            <input type="number" step="any" id="restLat" class="form-control" value="{{ restaurant.latitude|default:'' }}" placeholder="e.g. 17.6868" required>
+                            <div class="form-text">Between -90.0 and 90.0</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold" for="restLon">Longitude <span class="text-danger">*</span></label>
+                            <input type="number" step="any" id="restLon" class="form-control" value="{{ restaurant.longitude|default:'' }}" placeholder="e.g. 83.2185" required>
+                            <div class="form-text">Between -180.0 and 180.0</div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold" for="restAddress">Full Address <span class="text-danger">*</span></label>
+                            <textarea id="restAddress" class="form-control" rows="2" placeholder="Street, Building, Landmark" required>{{ restaurant.address|default:'' }}</textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="restAddressLine">Street / Landmark</label>
+                            <input type="text" id="restAddressLine" class="form-control" value="{{ restaurant.address_line|default:'' }}" placeholder="Nearby landmark or street">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="restArea">Area / Locality</label>
+                            <input type="text" id="restArea" class="form-control" value="{{ restaurant.area|default:'' }}" placeholder="Area or locality">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold" for="restCity">City <span class="text-danger">*</span></label>
+                            <input type="text" id="restCity" class="form-control" value="{{ restaurant.city|default:'' }}" placeholder="City" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold" for="restState">State <span class="text-danger">*</span></label>
+                            <input type="text" id="restState" class="form-control" value="{{ restaurant.state|default:'' }}" placeholder="State" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold" for="restPincode">Pincode <span class="text-danger">*</span></label>
+                            <input type="text" id="restPincode" class="form-control" value="{{ restaurant.pincode|default:'' }}" placeholder="6-digit pincode" maxlength="12" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="restDistrict">District</label>
+                            <input type="text" id="restDistrict" class="form-control" value="{{ restaurant.district|default:'' }}" placeholder="District">
+                        </div>
+                    </div>
+
+                    <button type="submit" id="btnSaveLocation" class="btn btn-dark btn-lg mt-4 w-100 fw-semibold">💾 Save Restaurant Location</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm p-4 mb-4">
+                <h5 class="mb-3">Location Status</h5>
+                <div class="p-3 bg-light rounded text-center mb-3">
+                    <span class="d-block text-muted small mb-1">Status</span>
+                    <span id="locationStatusBadge">
+                        {% if restaurant.latitude and restaurant.longitude %}
+                            <span class="badge bg-success p-2">📍 Saved business location</span>
+                        {% else %}
+                            <span class="badge bg-warning text-dark p-2">⚠️ Location pin not confirmed</span>
+                        {% endif %}
+                    </span>
+                    <div id="savedCoordsDisplay" class="small text-muted mt-2">
+                        {% if restaurant.latitude and restaurant.longitude %}
+                            Coordinates: {{ restaurant.latitude|floatformat:4 }}, {{ restaurant.longitude|floatformat:4 }}
+                            {% if restaurant.location_updated_at %}
+                                <br><small>Updated: {{ restaurant.location_updated_at|date:"M d, Y H:i" }}</small>
+                            {% endif %}
+                        {% else %}
+                            Click "Use My Current Location" or adjust the pin to save your location.
+                        {% endif %}
+                    </div>
+                </div>
+
+                <h6 class="fw-bold mt-2 mb-2">How location is used:</h6>
+                <ul class="text-muted small ps-3 mb-0">
+                    <li class="mb-2"><strong>Fixed Business Location:</strong> Your coordinates remain saved and constant for customer discovery.</li>
+                    <li class="mb-2"><strong>Nearby Searches:</strong> Customers within your delivery radius find your restaurant sorted by proximity.</li>
+                    <li class="mb-2"><strong>Accurate Delivery Fees:</strong> Customer delivery charges and ETAs are calculated from this exact pin.</li>
+                    <li class="mb-2"><strong>Driver Pickup:</strong> Delivery partners navigate directly to this kitchen entrance.</li>
+                </ul>
+            </div>
+
+            <div class="card border-0 shadow-sm p-4">
+                <h6 class="fw-bold mb-2">Need help setting location?</h6>
+                <p class="text-muted small mb-2">If browser GPS permission is denied or inaccurate, you can directly type your address or click anywhere on the map to set your pin.</p>
+                <a href="{% url 'restaurant_dashboard' %}" class="btn btn-outline-secondary btn-sm">← Back to Dashboard</a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="{% static 'location/js/location.js' %}"></script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const feedbackEl = document.getElementById("gpsFeedback");
+    const saveAlertContainer = document.getElementById("saveAlertContainer");
+    const latInput = document.getElementById("restLat");
+    const lonInput = document.getElementById("restLon");
+    const addrLineInput = document.getElementById("restAddressLine");
+    const addrInput = document.getElementById("restAddress");
+    const areaInput = document.getElementById("restArea");
+    const districtInput = document.getElementById("restDistrict");
+    const cityInput = document.getElementById("restCity");
+    const stateInput = document.getElementById("restState");
+    const pinInput = document.getElementById("restPincode");
+    const locationDefaults = document.getElementById("restaurantLocationDefaults");
+    const btnDetect = document.getElementById("btnDetectGps");
+    const btnSave = document.getElementById("btnSaveLocation");
+    const statusBadge = document.getElementById("locationStatusBadge");
+    const coordsDisplay = document.getElementById("savedCoordsDisplay");
+    const accuracyBadge = document.getElementById("gpsAccuracyBadge");
+    const accuracyVal = document.getElementById("gpsAccuracyVal");
+
+    const defaultLat = parseFloat(latInput.value) || parseFloat(locationDefaults?.dataset?.defaultLat) || 17.6868;
+    const defaultLon = parseFloat(lonInput.value) || parseFloat(locationDefaults?.dataset?.defaultLon) || 83.2185;
+
+    const mapManager = new FoodExMap("restaurantMap", {
+        defaultCenter: [defaultLat, defaultLon],
+        defaultZoom: 14,
+    });
+
+    const gpsManager = new GPSLocationManager({ enableHighAccuracy: true });
+
+    function setFeedback(msg, type) {
+        if (!feedbackEl) return;
+        feedbackEl.className = `alert alert-${type === "loading" ? "info" : type === "success" ? "success" : "warning"} py-2 px-3 small`;
+        feedbackEl.innerHTML = msg;
+        feedbackEl.classList.remove("d-none");
+    }
+
+    function showSaveAlert(msg, type) {
+        if (!saveAlertContainer) return;
+        saveAlertContainer.innerHTML = `
+            <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                ${msg}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        `;
+    }
+
+    function updateMarkerAndFields(lat, lon, reverse = true) {
+        const numLat = parseFloat(lat);
+        const numLon = parseFloat(lon);
+        if (isNaN(numLat) || isNaN(numLon)) return;
+
+        latInput.value = numLat.toFixed(6);
+        lonInput.value = numLon.toFixed(6);
+
+        mapManager.addMarker(
+            "restPin",
+            "restaurant",
+            numLat,
+            numLon,
+            "{{ restaurant.name|escapejs }}",
+            "<strong>🍽️ {{ restaurant.name|escapejs }}</strong><br>Drag pin or click map to adjust entrance",
+            true,
+            (newLat, newLon) => {
+                updateMarkerAndFields(newLat, newLon, true);
+            }
+        );
+        mapManager.setCenter(numLat, numLon, 16);
+
+        if (reverse) {
+            setFeedback("⏳ Reverse-geocoding address from pin coordinates...", "loading");
+            fetch(`/api/location/detect/?latitude=${numLat}&longitude=${numLon}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.success) {
+                        if (data.address && (!addrInput.value || addrInput.value.length < 5)) {
+                            addrInput.value = data.address;
+                        }
+                        if (data.address_line && !addrLineInput.value) {
+                            addrLineInput.value = data.address_line;
+                        }
+                        if (data.city && (!cityInput.value || cityInput.value === "City")) {
+                            cityInput.value = data.city;
+                        }
+                        if (data.district && !districtInput.value) {
+                            districtInput.value = data.district;
+                        }
+                        if (data.state && (!stateInput.value || stateInput.value === "State")) {
+                            stateInput.value = data.state;
+                        }
+                        if (data.pincode && !pinInput.value) {
+                            pinInput.value = data.pincode;
+                        }
+                        if (data.area && !areaInput.value) {
+                            areaInput.value = data.area;
+                        }
+                        setFeedback("✓ Pin position updated. Address details suggested below.", "success");
+                    } else {
+                        setFeedback("✓ Pin position updated.", "success");
+                    }
+                })
+                .catch(() => {
+                    setFeedback("✓ Pin position updated.", "success");
+                });
+        }
+    }
+
+    // Initialize marker at saved or default location
+    updateMarkerAndFields(defaultLat, defaultLon, false);
+
+    // Map click listener: clicking map repositions the pin
+    if (mapManager.map) {
+        mapManager.map.on("click", (e) => {
+            updateMarkerAndFields(e.latlng.lat, e.latlng.lng, true);
+        });
+    }
+
+    // Input blur listener: typing coordinates manually repositions the pin
+    function onManualCoordChange() {
+        const valLat = parseFloat(latInput.value);
+        const valLon = parseFloat(lonInput.value);
+        if (!isNaN(valLat) && !isNaN(valLon) && valLat >= -90 && valLat <= 90 && valLon >= -180 && valLon <= 180) {
+            updateMarkerAndFields(valLat, valLon, true);
+        }
+    }
+    latInput.addEventListener("change", onManualCoordChange);
+    lonInput.addEventListener("change", onManualCoordChange);
+
+    // Detect GPS button
+    if (btnDetect) {
+        btnDetect.addEventListener("click", () => {
+            setFeedback("⏳ Requesting device location... Please click <strong>Allow</strong> in your browser.", "loading");
+            btnDetect.disabled = true;
+
+            gpsManager.getCurrentLocation(
+                (pos) => {
+                    btnDetect.disabled = false;
+                    const lat = pos.coords.latitude;
+                    const lon = pos.coords.longitude;
+                    const acc = Math.round(pos.coords.accuracy);
+
+                    if (accuracyBadge && accuracyVal) {
+                        accuracyVal.textContent = `±${acc}m`;
+                        accuracyBadge.classList.remove("d-none");
+                        if (acc > 100) {
+                            accuracyBadge.className = "badge bg-warning text-dark border";
+                        } else {
+                            accuracyBadge.className = "badge bg-success text-white border";
+                        }
+                    }
+
+                    updateMarkerAndFields(lat, lon, true);
+                    setFeedback(`✓ GPS detected location: ${lat.toFixed(4)}, ${lon.toFixed(4)} (±${acc}m). You can adjust the pin to your exact entrance.`, "success");
+                },
+                (errMsg) => {
+                    btnDetect.disabled = false;
+                    setFeedback(`⚠️ ${errMsg} You can still manually enter your address and click on the map to set your location.`, "warning");
+                }
+            );
+        });
+    }
+
+    // Save Location Form
+    const form = document.getElementById("restaurantLocationForm");
+    if (form) {
+        form.addEventListener("submit", (e) => {
+            e.preventDefault();
+
+            const lat = parseFloat(latInput.value);
+            const lon = parseFloat(lonInput.value);
+
+            if (isNaN(lat) || isNaN(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+                showSaveAlert("Please provide valid latitude (-90 to 90) and longitude (-180 to 180) coordinates.", "danger");
+                return;
+            }
+
+            btnSave.disabled = true;
+            btnSave.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Saving to MySQL...';
+
+            const csrfToken = (typeof getCookie === "function" ? getCookie("csrftoken") : "") || document.querySelector('[name=csrfmiddlewaretoken]')?.value || "";
+
+            fetch("/api/location/restaurant/update/", {
+                method: "POST",
+                credentials: "same-origin",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": csrfToken,
+                },
+                body: JSON.stringify({
+                    latitude: latInput.value,
+                    longitude: lonInput.value,
+                    address: addrInput.value,
+                    address_line: addrLineInput.value,
+                    area: areaInput.value,
+                    district: districtInput.value,
+                    city: cityInput.value,
+                    state: stateInput.value,
+                    pincode: pinInput.value,
+                })
+            })
+            .then(res => res.json().then(data => ({ status: res.status, data })))
+            .then(({ status, data }) => {
+                btnSave.disabled = false;
+                btnSave.innerHTML = "💾 Save Restaurant Location";
+
+                if (status >= 200 && status < 300 && data.success) {
+                    showSaveAlert(`<strong>✓ Location saved!</strong> Your restaurant business coordinates (<strong>${data.latitude.toFixed(4)}, ${data.longitude.toFixed(4)}</strong>) are stored in MySQL. Customers and delivery partners will use this spot.`, "success");
+
+                    if (statusBadge) {
+                        statusBadge.innerHTML = '<span class="badge bg-success p-2">📍 Saved business location</span>';
+                    }
+                    if (coordsDisplay) {
+                        coordsDisplay.innerHTML = `Coordinates: ${data.latitude.toFixed(4)}, ${data.longitude.toFixed(4)}<br><small>Updated: Just now</small>`;
+                    }
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                } else {
+                    showSaveAlert(`⚠️ ${data.message || "Unable to save location. Please check coordinates and address."}`, "danger");
+                }
+            })
+            .catch(err => {
+                btnSave.disabled = false;
+                btnSave.innerHTML = "💾 Save Restaurant Location";
+                showSaveAlert(`⚠️ Network error: ${err.message}`, "danger");
+            });
+        });
+    }
+});
+</script>
+{% endblock %}

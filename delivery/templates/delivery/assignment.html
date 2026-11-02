@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Delivery Assignment | Food_Ex{% endblock %}
+
+{% block content %}
+<section class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm p-4 text-center">
+                <h2 class="mb-3">Delivery Assignment</h2>
+                {% if assignment %}
+                    <p class="mb-2">Order #{{ assignment.order.id }} has been assigned to you.</p>
+                    <p class="mb-0 text-muted">Status: {{ assignment.get_status_display }}</p>
+                {% else %}
+                    <p>No delivery assignment was created.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

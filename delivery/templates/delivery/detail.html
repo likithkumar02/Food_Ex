@@ -1,0 +1,115 @@
+{% extends "portals/delivery_base.html" %}
+{% load static %}
+
+{% block title %}Delivery Details | Food_Ex{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<link rel="stylesheet" href="{% static 'location/css/location.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="container py-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card border-0 shadow-sm p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2 class="mb-0">Order #{{ assignment.order.code|default:assignment.order.id }}</h2>
+                    <span class="badge bg-danger fs-6">{{ assignment.get_status_display }}</span>
+                </div>
+
+                <div class="row g-2 mb-3 small">
+                    <div class="col-md-6">
+                        <strong>🍽️ Pickup:</strong> {{ assignment.order.restaurant.name }}<br>
+                        <span class="text-muted">{{ assignment.order.restaurant.address }}</span>
+                        {% if assignment.order.restaurant.area or assignment.order.restaurant.city %}
+                            <br><span class="text-muted">{{ assignment.order.restaurant.area }}{% if assignment.order.restaurant.area and assignment.order.restaurant.city %}, {% endif %}{{ assignment.order.restaurant.city }}</span>
+                        {% endif %}
+                        {% if assignment.order.restaurant.phone %}
+                            <br><a href="tel:{{ assignment.order.restaurant.phone }}">Call restaurant: {{ assignment.order.restaurant.phone }}</a>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>🏠 Customer:</strong> {{ assignment.order.user.get_full_name|default:assignment.order.user.username }}<br>
+                        <strong>Drop-off address:</strong><br>
+                        <span class="text-muted">{{ assignment.order.delivery_address }}</span>
+                        {% if assignment.order.delivery_area or assignment.order.delivery_city or assignment.order.delivery_pincode %}
+                            <br><span class="text-muted">{{ assignment.order.delivery_area }}{% if assignment.order.delivery_area and assignment.order.delivery_city %}, {% endif %}{{ assignment.order.delivery_city }}{% if assignment.order.delivery_pincode %} {{ assignment.order.delivery_pincode }}{% endif %}</span>
+                        {% endif %}
+                        {% if assignment.order.customer_phone %}
+                            <br><a href="tel:{{ assignment.order.customer_phone }}">Call customer: {{ assignment.order.customer_phone }}</a>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Navigation Map -->
+                <div
+                    id="deliveryNavigationMap"
+                    class="foodex-map-container mb-3"
+                    data-rest-lat="{{ assignment.order.restaurant.latitude|default:'' }}"
+                    data-rest-lon="{{ assignment.order.restaurant.longitude|default:'' }}"
+                    data-rest-name="{{ assignment.order.restaurant.name|escapejs|default:'Pickup Location' }}"
+                    data-rest-address="{{ assignment.order.restaurant.address|escapejs|default:'' }}"
+                    data-cust-lat="{{ assignment.order.customer_latitude|default:assignment.order.delivery_latitude|default:'' }}"
+                    data-cust-lon="{{ assignment.order.customer_longitude|default:assignment.order.delivery_longitude|default:'' }}"
+                    data-cust-address="{{ assignment.order.delivery_address|escapejs|default:'' }}"
+                    data-assignment-id="{{ assignment.id|default:'' }}"
+                    data-order-id="{{ assignment.order.id|default:'' }}"
+                    data-csrf-token="{{ csrf_token }}"
+                ></div>
+
+                <div class="d-flex justify-content-between align-items-center mb-4 text-muted small">
+                    <span id="riderGpsTelemetry">GPS active</span>
+                    {% if assignment.order.delivery_distance %}
+                        <span class="distance-badge">Estimated trip: {{ assignment.order.delivery_distance }} km</span>
+                    {% endif %}
+                </div>
+
+                <!-- Transition Buttons -->
+                <div class="d-flex gap-2">
+                    {% if assignment.status == "assigned" %}
+                        <form method="post" action="{% url 'accept_delivery' assignment.id %}" class="w-50">
+                            {% csrf_token %}
+                            <button class="btn btn-success w-100 py-2 fw-semibold" type="submit">✓ Accept Delivery</button>
+                        </form>
+                        <form method="post" action="{% url 'reject_delivery' assignment.id %}" class="w-50">
+                            {% csrf_token %}
+                            <label class="visually-hidden" for="deliveryRejectReason">Reason for declining</label>
+                            <input class="form-control form-control-sm mb-2" id="deliveryRejectReason" name="reason" maxlength="255" placeholder="Reason (optional)">
+                            <button class="btn btn-outline-danger w-100 py-2" type="submit">✕ Decline</button>
+                        </form>
+                    {% elif assignment.status == "accepted" %}
+                        <form method="post" action="{% url 'update_delivery_status' assignment.id 'arrived_at_pickup' %}" class="w-100">
+                            {% csrf_token %}
+                            <button class="btn btn-info text-white w-100 py-2 fs-5 fw-bold" type="submit">📍 Arrived at Restaurant</button>
+                        </form>
+                    {% elif assignment.status == "arrived_at_pickup" %}
+                        <form method="post" action="{% url 'update_delivery_status' assignment.id 'picked_up' %}" class="w-100">
+                            {% csrf_token %}
+                            <button class="btn btn-primary w-100 py-2 fs-5" type="submit">📦 Confirm Pickup from Kitchen</button>
+                        </form>
+                    {% elif assignment.status == "picked_up" %}
+                        <form method="post" action="{% url 'update_delivery_status' assignment.id 'on_the_way' %}" class="w-100">
+                            {% csrf_token %}
+                            <button class="btn btn-warning text-dark w-100 py-2 fs-5 fw-bold" type="submit">🛵 Start Delivery to Customer</button>
+                        </form>
+                    {% elif assignment.status == "on_the_way" %}
+                        <form method="post" action="{% url 'update_delivery_status' assignment.id 'delivered' %}" class="w-100">
+                            {% csrf_token %}
+                            <button class="btn btn-success w-100 py-2 fs-5 fw-bold" type="submit">🎉 Mark Order Delivered</button>
+                        </form>
+                    {% endif %}
+                </div>
+
+                <a class="btn btn-outline-secondary btn-sm mt-4 text-center" href="{% url 'delivery_dashboard' %}">← Back to dashboard</a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="{% static 'location/js/location.js' %}"></script>
+<script src="{% static 'delivery/js/detail.js' %}"></script>
+{% endblock %}

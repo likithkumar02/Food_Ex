@@ -1,0 +1,247 @@
+{% extends "portals/customer_base.html" %}
+{% load static %}
+
+{% block title %}Restaurants | Food_Ex{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'location/css/location.css' %}">
+<style>
+.location-hero-bar {
+    background: #ffffff;
+    border-radius: 12px;
+    border: 1px solid #f0f0f0;
+    transition: box-shadow 0.2s ease;
+}
+.location-hero-bar:hover {
+    box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+}
+.location-pin-icon {
+    width: 44px;
+    height: 44px;
+    background: #fee2e2;
+    color: #ef4444;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+}
+.restaurant-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.restaurant-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.08) !important;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="container py-4">
+
+    <!-- ── Delivery Location Hero Bar (Automatic Location & Filter) ── -->
+    <div class="location-hero-bar p-3 mb-4 shadow-sm">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <div class="d-flex align-items-center gap-3">
+                <div class="location-pin-icon">
+                    <span>📍</span>
+                </div>
+                <div>
+                    <span class="text-uppercase text-muted fw-bold" style="font-size: 0.72rem; letter-spacing: 0.6px;">DELIVERING TO</span>
+                    <h5 class="mb-0 fw-bold text-dark" id="currentDeliveryLabel">
+                        {% if area or district or city or state %}
+                            {% if area %}{{ area }}, {% endif %}{% if district %}{{ district }}, {% elif city %}{{ city }}, {% endif %}{{ state }}
+                        {% else %}
+                            Browse all locations
+                        {% endif %}
+                    </h5>
+                    <small class="text-muted" id="locationStatusText">
+                        {% if filter_label %}
+                            {{ filter_label }}
+                        {% elif district and state %}
+                            Showing nearby restaurants in {{ district }}, {{ state }}
+                        {% elif state %}
+                            Showing nearby restaurants in {{ state }}
+                        {% else %}
+                            Detect your location to filter nearby kitchens automatically
+                        {% endif %}
+                    </small>
+                </div>
+            </div>
+
+            <div class="d-flex align-items-center gap-2">
+                <button id="btnAutoDetectLocation" class="btn btn-outline-danger btn-sm px-3 py-2 fw-semibold d-flex align-items-center gap-2">
+                    <span class="spinner-border spinner-border-sm d-none" id="gpsDetectSpinner" role="status"></span>
+                    <span>📍 Auto-detect GPS</span>
+                </button>
+                {% if state or district or city or area %}
+                <a href="{% url 'customer_portal' %}" class="btn btn-outline-secondary btn-sm px-3 py-2">
+                    ✕ Clear Filter
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Welcome Greeting & Portal Navigation Hub ── -->
+    {% if user.is_authenticated and user.role == "customer" %}
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <div>
+                <span class="badge bg-danger-subtle text-danger text-uppercase fw-bold mb-1" style="font-size: 0.72rem; letter-spacing: 0.5px;">WELCOME BACK</span>
+                <h2 class="mb-0 fw-bold">Welcome, {{ user.first_name|default:user.username }}! 👋</h2>
+                <p class="text-muted small mb-0">Discover local favorites and popular cuisines.</p>
+            </div>
+            <a href="{% url 'customer_profile' %}" class="btn btn-outline-danger btn-sm px-3 fw-semibold">
+                👤 My Account Hub →
+            </a>
+        </div>
+
+        <!-- Customer Organized Quick Hub -->
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-md-3">
+                <a href="{% url 'customer_profile' %}" class="card border-0 shadow-sm p-3 text-decoration-none h-100 hover-lift bg-white">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="fs-4">👤</span>
+                        <div>
+                            <strong class="text-dark d-block small">My Profile</strong>
+                            <small class="text-muted" style="font-size: 0.72rem;">Account & address</small>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-6 col-md-3">
+                <a href="{% url 'location_customer' %}" class="card border-0 shadow-sm p-3 text-decoration-none h-100 hover-lift bg-white">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="fs-4">📍</span>
+                        <div>
+                            <strong class="text-dark d-block small">Doorstep Pin</strong>
+                            <small class="text-muted" style="font-size: 0.72rem;">GPS & live map</small>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-6 col-md-3">
+                <a href="{% url 'order_history' %}" class="card border-0 shadow-sm p-3 text-decoration-none h-100 hover-lift bg-white">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="fs-4">📦</span>
+                        <div>
+                            <strong class="text-dark d-block small">My Orders</strong>
+                            <small class="text-muted" style="font-size: 0.72rem;">History & tracking</small>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-6 col-md-3">
+                <a href="{% url 'settings' %}" class="card border-0 shadow-sm p-3 text-decoration-none h-100 hover-lift bg-white">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="fs-4">⚙️</span>
+                        <div>
+                            <strong class="text-dark d-block small">Settings</strong>
+                            <small class="text-muted" style="font-size: 0.72rem;">Password & privacy</small>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+    {% else %}
+        <div class="card border-0 shadow-sm mb-4 p-3 bg-white">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                <div>
+                    <h5 class="mb-1 fw-bold text-dark">Hungry? Log in for personalized local delivery 🍽️</h5>
+                    <p class="text-muted small mb-0">Save your doorstep delivery address, track orders live, and reorder favorites in 1 click.</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{% url 'customer_login' %}" class="btn btn-danger px-4 fw-semibold">Log in</a>
+                    <a href="{% url 'customer_register' %}" class="btn btn-outline-danger px-3">Sign up</a>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- ── Fallback Notice when region has no restaurants ── -->
+    {% if fallback_reason %}
+    <div class="alert alert-warning d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+        <div>
+            <strong>📍 {{ fallback_reason }}</strong>
+            <p class="mb-0 small text-muted">Showing all available restaurants across other regions instead.</p>
+        </div>
+        <a href="{% url 'customer_portal' %}" class="btn btn-outline-dark btn-sm">Browse all available restaurants</a>
+    </div>
+    {% endif %}
+
+    <!-- ── Filter Alert ── -->
+    {% if area or district or city or state %}
+    <div class="alert alert-light border mb-4 py-2 small d-flex justify-content-between align-items-center">
+        <div>
+            <strong>📍 Location Filter:</strong>
+            {% if area %}{{ area }}, {% endif %}
+            {% if district %}{{ district }} (District), {% endif %}
+            {% if city and city != district %}{{ city }}, {% endif %}
+            {% if state %}{{ state }}{% endif %}
+        </div>
+        <a href="{% url 'customer_portal' %}" class="text-danger small fw-semibold text-decoration-none">Clear filter</a>
+    </div>
+    {% endif %}
+
+    <!-- ── Restaurants Grid ── -->
+    <div class="row g-4">
+        {% for restaurant in restaurants %}
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 border-0 shadow-sm restaurant-card">
+                    {% if restaurant.image %}
+                        <img class="restaurant-list-image" src="{{ restaurant.image.url }}" alt="{{ restaurant.name }}" loading="lazy">
+                    {% endif %}
+                    <div class="card-body d-flex flex-column">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="badge bg-danger-subtle text-danger">{{ restaurant.cuisine_type }}</span>
+                            {% if restaurant.distance_km is not None %}
+                                <span class="badge bg-success-subtle text-success fw-bold">⚡ {{ restaurant.distance_km }} km</span>
+                            {% endif %}
+                        </div>
+
+                        <h4 class="card-title mb-1">{{ restaurant.name }}</h4>
+                        <p class="text-muted small mb-1">
+                            📍 {{ restaurant.address }}{% if restaurant.district %}, {{ restaurant.district }}{% endif %}{% if restaurant.state %}, {{ restaurant.state }}{% endif %}
+                        </p>
+                        {% if restaurant.eta_info %}
+                            <p class="small text-muted mb-2">⏱️ Approx. <strong>{{ restaurant.eta_info.range }}</strong></p>
+                        {% endif %}
+                        <p class="text-muted small mb-2">📞 {{ restaurant.phone }}</p>
+                        <p class="card-text text-secondary small flex-grow-1">{{ restaurant.description }}</p>
+
+                        {% for item in restaurant.menu_items.all %}
+                            {% if item.is_available and forloop.counter <= 3 %}
+                                <div class="restaurant-list-menu-row"><span>{{ item.name }}</span><strong>₹{{ item.price }}</strong></div>
+                            {% endif %}
+                        {% endfor %}
+                        <a href="{% url 'restaurant_detail' restaurant.id %}" class="btn btn-danger mt-3">View menu</a>
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <div class="col-12">
+                <div class="empty-state">
+                    <div class="empty-state-icon">🍽️</div>
+                    {% if district and state %}
+                        <h3>No restaurants in {{ district }}, {{ state }} yet</h3>
+                        <p>We haven't launched delivery partners in {{ district }} yet. Try browsing all restaurants.</p>
+                        <a class="btn btn-danger" href="{% url 'customer_portal' %}">Browse all available restaurants</a>
+                    {% elif state %}
+                        <h3>No approved restaurants in {{ state }} yet</h3>
+                        <p>Try browsing all locations to see the restaurants currently available.</p>
+                        <a class="btn btn-danger" href="{% url 'customer_portal' %}">Browse all available restaurants</a>
+                    {% else %}
+                        <h3>No restaurants found</h3>
+                        <p>Try clearing your search or location filter.</p>
+                        <a class="btn btn-danger" href="{% url 'customer_portal' %}">Browse all restaurants</a>
+                    {% endif %}
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'location/js/customer-storefront-location.js' %}"></script>
+{% endblock %}

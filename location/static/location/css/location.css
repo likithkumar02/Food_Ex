@@ -1,0 +1,272 @@
+.foodex-map-container {
+    width: 100%;
+    min-height: 360px;
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #eef2f3;
+}
+
+
+
+.foodex-map-lg {
+    min-height: 520px;
+}
+
+
+
+.gps-feedback {
+    padding: 10px 12px;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    font-size: 0.9rem;
+}
+
+
+
+.gps-feedback.status-loading {
+    border-color: #b7d6e2;
+    background: #eef7fa;
+    color: #28566a;
+}
+
+
+
+.gps-feedback.status-success {
+    border-color: #b9dbc5;
+    background: #eff8f1;
+    color: #285d3d;
+}
+
+
+
+.gps-feedback.status-error {
+    border-color: #e6c1c1;
+    background: #fff1f1;
+    color: #842d2d;
+}
+
+
+
+.saved-address-card {
+    padding: 12px;
+    border: 1px solid #e3e5e8;
+    border-radius: 6px;
+    background: #fff;
+}
+
+
+
+.address-tag {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: #f4e9e6;
+    color: #8c3d31;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.customer-order-tracking,
+.customer-order-empty {
+    padding: clamp(18px, 3vw, 32px);
+    border: 1px solid #eee5e3;
+    border-radius: 18px;
+    background: #fff;
+    box-shadow: 0 12px 36px rgba(32, 33, 36, 0.07);
+}
+
+.customer-tracking-heading,
+.customer-order-empty {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.customer-tracking-eyebrow {
+    color: #d82d45;
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+}
+
+.customer-tracking-status {
+    padding: 9px 14px;
+    border-radius: 999px;
+    background: #fff0f1;
+    color: #c9233c;
+    font-size: 0.9rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.customer-tracking-grid {
+    display: grid;
+    grid-template-columns: minmax(250px, 0.85fr) minmax(320px, 1.15fr);
+    gap: clamp(18px, 3vw, 32px);
+    margin-top: 24px;
+}
+
+.customer-tracking-progress,
+.customer-tracking-map-panel {
+    min-width: 0;
+}
+
+.customer-order-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 16px 0;
+}
+
+.customer-order-timeline li {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 42px;
+    padding: 6px 0;
+    border: 0;
+    color: #92949a;
+    font-size: 0.9rem;
+}
+
+.customer-order-timeline li:not(:last-child)::after {
+    position: absolute;
+    top: 31px;
+    bottom: -7px;
+    left: 14px;
+    width: 2px;
+    background: #e9e9ec;
+    content: "";
+}
+
+.customer-order-timeline li.is-complete {
+    color: #31343a;
+}
+
+.customer-order-timeline li.is-complete::after {
+    background: #ec1744;
+}
+
+.customer-order-timeline li.is-current {
+    color: #d5123c;
+    font-weight: 800;
+}
+
+.customer-order-timeline time {
+    margin-left: auto;
+    color: #777b82;
+    font-size: 0.7rem;
+    font-weight: 400;
+}
+
+.tracking-step-icon {
+    z-index: 1;
+    display: inline-grid;
+    width: 30px;
+    height: 30px;
+    flex: 0 0 30px;
+    place-items: center;
+    border: 2px solid #dedfe3;
+    border-radius: 50%;
+    background: #fff;
+    color: #a3a5aa;
+    font-size: 0.75rem;
+}
+
+.customer-order-timeline li.is-complete .tracking-step-icon,
+.customer-order-timeline li.is-current .tracking-step-icon {
+    border-color: #ec1744;
+    background: #ec1744;
+    color: #fff;
+}
+
+.customer-order-map {
+    min-height: 310px;
+    border-radius: 14px;
+}
+
+.customer-tracking-summary {
+    padding: 14px 4px 0;
+}
+
+.customer-order-details-link {
+    width: 100%;
+    margin-top: 8px;
+}
+
+@media (max-width: 767.98px) {
+    .customer-tracking-heading,
+    .customer-order-empty {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .customer-tracking-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .customer-order-map {
+        min-height: 270px;
+    }
+}
+
+/* Food_Ex Custom Map Markers */
+.foodex-div-icon {
+    background: transparent !important;
+    border: none !important;
+}
+
+.foodex-marker-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: #ffffff;
+    font-size: 22px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+    transition: transform 0.25s ease;
+    user-select: none;
+    cursor: pointer;
+}
+
+.foodex-marker-icon:hover {
+    transform: scale(1.15);
+}
+
+.foodex-marker-restaurant {
+    border: 3.5px solid #e23744;
+    background: #ffffff;
+}
+
+.foodex-marker-customer {
+    border: 3.5px solid #10b981;
+    background: #ffffff;
+}
+
+.foodex-marker-delivery {
+    border: 3.5px solid #3b82f6;
+    background: #ffffff;
+    animation: foodex-pulse 1.8s infinite;
+}
+
+.foodex-marker-picker {
+    border: 3.5px solid #f59e0b;
+    background: #ffffff;
+}
+
+@keyframes foodex-pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.6), 0 4px 14px rgba(0, 0, 0, 0.28);
+    }
+    70% {
+        box-shadow: 0 0 0 14px rgba(59, 130, 246, 0), 0 4px 14px rgba(0, 0, 0, 0.28);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0), 0 4px 14px rgba(0, 0, 0, 0.28);
+    }
+}

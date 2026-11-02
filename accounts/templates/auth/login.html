@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Log in | Food_Ex{% endblock %}
+
+{% block site_header %}{% endblock %}
+
+{% block content %}
+<section class="auth-shell auth-shell-login container">
+    <div class="auth-panel">
+        <a class="auth-wordmark" href="{% url 'home' %}">FOOD_EX</a>
+        <p class="auth-kicker">Your next favorite is waiting</p>
+        <h1>Welcome back</h1>
+        <div id="loginMessage" class="form-message" role="alert" aria-live="polite" hidden></div>
+
+        <form id="loginForm" method="post" novalidate>
+            {% csrf_token %}
+            <div class="mb-3">
+                <label class="form-label" for="loginEmail">Email</label>
+                <input class="form-control" id="loginEmail" name="email" type="email" autocomplete="email" required>
+                <div class="invalid-feedback">Enter a valid email address.</div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="loginPassword">Password</label>
+                <input class="form-control" id="loginPassword" name="password" type="password" autocomplete="current-password" required>
+                <div class="invalid-feedback">Enter your password.</div>
+            </div>
+            <div class="login-utility">
+                <a href="{% url 'forgot_password' %}">Forgot password?</a>
+            </div>
+            <button class="btn btn-danger auth-submit" type="submit">Log in</button>
+        </form>
+
+        <p class="auth-switch">Don’t have an account? <a href="{% url 'register' %}">Create account</a></p>
+    </div>
+    <aside class="auth-aside auth-aside-login" aria-label="Food_Ex delivery">
+        <span class="auth-aside-mark">FE / 02</span>
+        <p>Your table<br>is a tap away.</p>
+        <span class="auth-aside-caption">LOCAL FOOD, RIGHT ON TIME</span>
+    </aside>
+</section>
+{% endblock %}

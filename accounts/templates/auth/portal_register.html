@@ -1,0 +1,140 @@
+{% extends portal.base_template %}
+
+{% block title %}Join as {{ portal.label }} | Food_Ex{% endblock %}
+
+{% block site_header %}
+{% if portal.label != "Customer" %}{{ block.super }}{% endif %}
+{% endblock %}
+
+{% block content %}
+<section class="portal-auth container py-5">
+    <div class="portal-auth-panel">
+        <a class="portal-back" href="{% url portal.portal_url %}">← {{ portal.label }} portal</a>
+        <p class="portal-eyebrow">FOOD_EX / {{ portal.label|upper }}</p>
+        <h1>Create your {{ portal.label|lower }} account</h1>
+        {% if portal.label == "Restaurant Partner" %}
+            <p class="portal-intro">Register your restaurant to create a partner account. Your listing will be reviewed before it is shown to customers.</p>
+        {% endif %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }}" role="alert">{{ message }}</div>
+        {% endfor %}
+        <form id="portalRegisterForm" method="post"{% if restaurant_form %} enctype="multipart/form-data"{% endif %}>
+            {% csrf_token %}
+            {{ form.role.as_hidden }}
+            {% for error in registration_errors %}
+                <div class="alert alert-danger" role="alert">{{ error }}</div>
+            {% endfor %}
+            {% for field in form %}
+                {% if field.name != "role" %}
+                    <div class="mb-3">
+                        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                        {% for error in field.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+                    </div>
+                {% endif %}
+            {% endfor %}
+            <div class="mb-3">
+                <label class="form-label" for="portalPhone">Mobile number</label>
+                <input class="form-control" id="portalPhone" name="phone" type="tel" autocomplete="tel" pattern="[+]?[0-9]{7,15}" required value="{{ request.POST.phone|default:'' }}">
+            </div>
+            {% if restaurant_form %}
+                <div class="d-flex justify-content-between align-items-center mt-4 mb-2">
+                    <h2 class="h5 mb-0">Restaurant details</h2>
+                    <button type="button" id="btnRegDetectGps" class="btn btn-outline-danger btn-sm">
+                        <span>📍 Use Current Location</span>
+                    </button>
+                </div>
+                <div id="regGpsFeedback" class="alert alert-info py-2 px-3 small d-none mb-3"></div>
+                {% for field in restaurant_form %}
+                    <div class="mb-3">
+                        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                        {% for error in field.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+                    </div>
+                {% endfor %}
+            {% endif %}
+            {% if portal.label == "Delivery partner" %}
+                <h2 class="h5 mt-4">Partner details</h2>
+                <div class="mb-3"><label class="form-label" for="vehicleType">Vehicle type</label><input class="form-control" id="vehicleType" name="vehicle_type" required value="{{ request.POST.vehicle_type|default:'' }}"></div>
+                <div class="mb-3"><label class="form-label" for="vehicleNumber">Vehicle number</label><input class="form-control" id="vehicleNumber" name="vehicle_number" required value="{{ request.POST.vehicle_number|default:'' }}"></div>
+                <div class="mb-3"><label class="form-label" for="licenseNumber">Driving license number</label><input class="form-control" id="licenseNumber" name="license_number" required value="{{ request.POST.license_number|default:'' }}"></div>
+                <div class="mb-3"><label class="form-label" for="partnerAddress">Home address</label><textarea class="form-control" id="partnerAddress" name="address" rows="2" required>{{ request.POST.address|default:'' }}</textarea></div>
+            {% endif %}
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger" role="alert">{{ form.non_field_errors }}</div>
+            {% endif %}
+            <button class="btn btn-dark w-100 mt-2" type="submit">Create account</button>
+        </form>
+        <p class="portal-auth-foot">Already registered? <a href="{% url portal.login_url %}">Log in</a></p>
+    </div>
+</section>
+
+{% if restaurant_form %}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const btn = document.getElementById("btnRegDetectGps");
+    const feedback = document.getElementById("regGpsFeedback");
+    if (!btn) return;
+
+    btn.addEventListener("click", () => {
+        if (!("geolocation" in navigator)) {
+            feedback.className = "alert alert-warning py-2 px-3 small";
+            feedback.textContent = "Geolocation is not supported by your browser. Please type your address manually.";
+            feedback.classList.remove("d-none");
+            return;
+        }
+
+        feedback.className = "alert alert-info py-2 px-3 small";
+        feedback.innerHTML = "⏳ Detecting location... Please click <strong>Allow</strong> in your browser.";
+        feedback.classList.remove("d-none");
+        btn.disabled = true;
+
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                btn.disabled = false;
+                const lat = pos.coords.latitude;
+                const lon = pos.coords.longitude;
+
+                const latInput = document.getElementById("id_latitude");
+                const lonInput = document.getElementById("id_longitude");
+                if (latInput) latInput.value = lat.toFixed(6);
+                if (lonInput) lonInput.value = lon.toFixed(6);
+
+                fetch(`/api/location/detect/?latitude=${lat}&longitude=${lon}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data && data.success) {
+                            const addrInput = document.getElementById("id_restaurant_address");
+                            const cityInput = document.getElementById("id_city");
+                            const stateInput = document.getElementById("id_state");
+                            const pinInput = document.getElementById("id_pincode");
+
+                            if (addrInput && data.address) addrInput.value = data.address;
+                            if (cityInput && data.city) cityInput.value = data.city;
+                            if (stateInput && data.state) stateInput.value = data.state;
+                            if (pinInput && data.pincode) pinInput.value = data.pincode;
+
+                            feedback.className = "alert alert-success py-2 px-3 small";
+                            feedback.innerHTML = `✓ Location detected (<strong>${lat.toFixed(4)}, ${lon.toFixed(4)}</strong>). Address fields auto-filled! You can adjust them as needed.`;
+                        } else {
+                            feedback.className = "alert alert-success py-2 px-3 small";
+                            feedback.innerHTML = `✓ Location detected (<strong>${lat.toFixed(4)}, ${lon.toFixed(4)}</strong>). Please enter your address details.`;
+                        }
+                    })
+                    .catch(() => {
+                        feedback.className = "alert alert-success py-2 px-3 small";
+                        feedback.innerHTML = `✓ Coordinates saved (<strong>${lat.toFixed(4)}, ${lon.toFixed(4)}</strong>).`;
+                    });
+            },
+            (err) => {
+                btn.disabled = false;
+                feedback.className = "alert alert-warning py-2 px-3 small";
+                feedback.textContent = "Location permission denied or unavailable. You can enter your restaurant address manually.";
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 10000 }
+        );
+    });
+});
+</script>
+{% endif %}
+{% endblock %}
