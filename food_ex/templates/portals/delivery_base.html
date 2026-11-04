@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block primary_navigation %}
+    <li class="nav-item"><a class="nav-link" href="{% url 'delivery_dashboard' %}">My shift</a></li>
+    <li class="nav-item"><a class="nav-link" href="{% url 'delivery_portal' %}">Delivery portal</a></li>
+    <li class="nav-item"><a class="nav-link" href="{% url 'notification_center' %}">Notifications</a></li>
+{% endblock %}
+
+{% block account_navigation %}
+    <li class="nav-item ms-lg-3" id="authNavSlot">
+        {% if user.is_authenticated and user.role == "delivery_partner" %}
+            <details class="customer-account-menu">
+                <summary aria-label="Open delivery partner account menu">
+                    <span class="customer-account-avatar customer-account-avatar-fallback" aria-hidden="true">{{ user.first_name|default:user.username|first|upper }}</span>
+                    <span class="customer-account-trigger-name">{{ user.first_name|default:user.username }}</span>
+                    <span class="customer-account-caret" aria-hidden="true">▾</span>
+                </summary>
+                <div class="customer-account-dropdown">
+                    <div class="customer-account-details">
+                        <strong>{{ user.get_full_name|default:user.username }}</strong>
+                        <span>{{ user.email }}</span>
+                    </div>
+                    <a href="{% url 'settings' %}">Account settings</a>
+                    <form method="post" action="{% url 'delivery_logout' %}">
+                        {% csrf_token %}
+                        <button type="submit">Log out</button>
+                    </form>
+                    <hr class="my-1">
+                    <form method="post" action="{% url 'delete_account' %}" onsubmit="return confirm('Permanently delete your delivery partner account ({{ user.username }})? This action cannot be undone.');">
+                        {% csrf_token %}
+                        <button type="submit" class="text-danger fw-semibold">Delete account</button>
+                    </form>
+                </div>
+            </details>
+        {% else %}
+            <div class="auth-nav-actions">
+                <a class="btn btn-outline-dark btn-sm" href="{% url 'delivery_login' %}">Partner log in</a>
+                <a class="btn btn-dark btn-sm" href="{% url 'delivery_register' %}">Join</a>
+            </div>
+        {% endif %}
+    </li>
+{% endblock %}

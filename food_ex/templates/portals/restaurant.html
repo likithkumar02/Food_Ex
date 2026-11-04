@@ -1,0 +1,42 @@
+{% extends "portals/restaurant_base.html" %}
+
+{% block title %}Restaurant Partner | Food_Ex{% endblock %}
+
+{% block content %}
+<section class="portal-page portal-restaurant">
+    <div class="container py-5">
+        {% if wrong_role %}
+            <div class="alert alert-warning" role="alert">
+                You are signed in to another portal. Use Owner log in to switch to a restaurant-partner account.
+            </div>
+        {% else %}
+        <div class="portal-heading">
+            <p class="portal-eyebrow">FOOD_EX / RESTAURANT PARTNER</p>
+            <h1>Run your restaurant<br>from one place.</h1>
+            <p class="portal-intro">Keep your menu current, respond to new orders, and manage service from your restaurant workspace.</p>
+        </div>
+
+        <div class="portal-workflows">
+            <a class="portal-workflow" href="{% url 'restaurant_order_management' %}">
+                <span class="portal-step">01 / ORDERS</span>
+                <h2>Incoming orders</h2>
+                <p>Review customer orders and accept or reject requests.</p>
+                <span class="portal-arrow" aria-hidden="true">↗</span>
+            </a>
+            <a class="portal-workflow" href="{% url 'restaurant_management' %}">
+                <span class="portal-step">02 / MENU</span>
+                <h2>Menu management</h2>
+                <p>Add dishes and keep your restaurant listing up to date.</p>
+                <span class="portal-arrow" aria-hidden="true">↗</span>
+            </a>
+            <a class="portal-workflow" href="{% url 'restaurant_list' %}">
+                <span class="portal-step">03 / STOREFRONT</span>
+                <h2>Customer view</h2>
+                <p>See how customers browse restaurants and menus.</p>
+                <span class="portal-arrow" aria-hidden="true">↗</span>
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

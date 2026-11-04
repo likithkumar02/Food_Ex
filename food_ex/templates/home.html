@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Food_Ex | Discover food near you{% endblock %}
+
+{% block content %}
+<section class="customer-hero">
+    <video class="customer-hero-video" autoplay muted loop playsinline preload="metadata" aria-hidden="true">
+        <source src="https://videos.pexels.com/video-files/2081576/2081576-hd_1920_1080_30fps.mp4" type="video/mp4">
+    </video>
+    <div class="customer-hero-shade"></div>
+    <div class="container customer-hero-inner">
+        <div class="customer-hero-copy">
+            <p class="customer-eyebrow">YOUR CITY, SERVED FRESH</p>
+            <h1>Find food<br>worth <em>sharing.</em></h1>
+            <p>Discover neighborhood restaurants, explore their menus, and get something delicious on the way.</p>
+            <form class="discovery-search" method="get" action="{% url 'customer_portal' %}">
+                <label class="visually-hidden" for="foodSearch">Restaurant, dish, cuisine, or area</label>
+                <span class="search-pin" aria-hidden="true">⌖</span>
+                <input id="foodSearch" name="q" type="search" placeholder="Restaurant, dish, cuisine, or area" autocomplete="off">
+                {% if state %}<input type="hidden" name="state" value="{{ state }}">{% endif %}
+                {% if district %}<input type="hidden" name="district" value="{{ district }}">{% endif %}
+                <button type="submit">Find food <span aria-hidden="true">→</span></button>
+            </form>
+            <a class="hero-secondary-link" href="#popular">Explore local restaurants <span aria-hidden="true">↓</span></a>
+        </div>
+        <div class="customer-hero-caption">
+            <span>01 — FOOD FROM YOUR NEIGHBORHOOD</span>
+            <span>{{ restaurant_count }} local restaurant{{ restaurant_count|pluralize }}</span>
+        </div>
+    </div>
+</section>
+
+<section class="customer-section cuisine-section" aria-labelledby="cuisineHeading">
+    <div class="container">
+        <div class="customer-section-heading">
+            <div>
+                <p class="customer-section-kicker">WHAT SOUNDS GOOD?</p>
+                <h2 id="cuisineHeading">Choose your craving</h2>
+            </div>
+            <a class="section-text-link" href="{% url 'customer_portal' %}{% if state %}?state={{ state|urlencode }}{% endif %}">All restaurants <span aria-hidden="true">→</span></a>
+        </div>
+        <div class="cuisine-grid">
+            <a class="cuisine-tile" href="{% url 'customer_portal' %}?q=Indian">
+                <img src="https://images.unsplash.com/photo-1585937421612-70a008356fbe?auto=format&fit=crop&w=520&q=80" alt="Indian curry and rice">
+                <span>Indian</span>
+            </a>
+            <a class="cuisine-tile" href="{% url 'customer_portal' %}?q=Pizza">
+                <img src="https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=520&q=80" alt="Freshly baked pizza">
+                <span>Pizza</span>
+            </a>
+            <a class="cuisine-tile" href="{% url 'customer_portal' %}?q=Burger">
+                <img src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=520&q=80" alt="Burger with lettuce and tomato">
+                <span>Burgers</span>
+            </a>
+            <a class="cuisine-tile" href="{% url 'customer_portal' %}?q=Salad">
+                <img src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=520&q=80" alt="Colorful fresh salad bowl">
+                <span>Fresh bowls</span>
+            </a>
+        </div>
+    </div>
+</section>
+
+<section class="customer-section restaurant-section" id="popular" aria-labelledby="popularHeading">
+    <div class="container">
+        <div class="customer-section-heading">
+            <div>
+                <p class="customer-section-kicker">MADE AROUND THE CORNER</p>
+                <h2 id="popularHeading">Local favorites</h2>
+            </div>
+            <a class="section-text-link" href="{% url 'customer_portal' %}{% if state %}?state={{ state|urlencode }}{% endif %}">See all <span aria-hidden="true">→</span></a>
+        </div>
+        {% if restaurant_cards %}
+            <div class="restaurant-grid">
+                {% for card in restaurant_cards %}
+                    <article class="restaurant-card">
+                        <a class="restaurant-card-image" href="{% url 'restaurant_detail' card.restaurant.id %}">
+                            <img src="{{ card.image }}" alt="Food from {{ card.restaurant.name }}" loading="lazy">
+                            <span class="restaurant-card-tag">{{ card.restaurant.cuisine_type }}</span>
+                        </a>
+                        <div class="restaurant-card-info">
+                            <h3><a href="{% url 'restaurant_detail' card.restaurant.id %}">{{ card.restaurant.name }}</a></h3>
+                            <p>{{ card.restaurant.description|default:card.restaurant.address|truncatechars:92 }}</p>
+                            <a class="card-menu-link" href="{% url 'restaurant_detail' card.restaurant.id %}">View menu <span aria-hidden="true">↗</span></a>
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="restaurant-empty-state">
+                <div>
+                    <p class="customer-section-kicker">THE TABLE IS SET</p>
+                    {% if state %}
+                        <h3>No approved restaurants in {{ state }} yet.</h3>
+                        <p>Browse all locations to see restaurants currently available on Food_Ex.</p>
+                    {% else %}
+                        <h3>Local menus are on the way.</h3>
+                        <p>Restaurant partners can open their Food_Ex storefront to start serving this neighborhood.</p>
+                    {% endif %}
+                </div>
+                {% if state %}
+                    <a class="btn btn-outline-dark" href="{% url 'customer_portal' %}">Browse all available restaurants <span aria-hidden="true">→</span></a>
+                {% else %}
+                    <a class="btn btn-outline-dark" href="{% url 'restaurant_portal' %}">Restaurant partner portal <span aria-hidden="true">↗</span></a>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</section>
+
+{% if dish_cards %}
+<section class="customer-section dish-section" aria-labelledby="dishHeading">
+    <div class="container">
+        <div class="customer-section-heading">
+            <div>
+                <p class="customer-section-kicker">ON THE MENU NOW</p>
+                <h2 id="dishHeading">Dishes to look forward to</h2>
+            </div>
+        </div>
+        <div class="dish-grid">
+            {% for card in dish_cards %}
+                <article class="dish-card">
+                    <img src="{{ card.image }}" alt="{{ card.dish.name }}" loading="lazy">
+                    <div>
+                        <p>{{ card.dish.restaurant.name }} · {{ card.dish.category }}</p>
+                        <h3>{{ card.dish.name }}</h3>
+                        <strong>₹{{ card.dish.price }}</strong>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<section class="partner-section" id="partners" aria-labelledby="partnerHeading">
+    <div class="container">
+        <div class="partner-section-heading">
+            <p class="customer-section-kicker">GOOD FOOD TAKES A TEAM</p>
+            <h2 id="partnerHeading">Be part of the neighborhood table.</h2>
+        </div>
+        <div class="partner-grid">
+            <a class="partner-link partner-restaurant" href="{% url 'restaurant_portal' %}">
+                <span class="partner-index">01 / RESTAURANT PARTNERS</span>
+                <span class="partner-link-title">Bring your kitchen to Food_Ex.</span>
+                <span class="partner-link-action">Open restaurant portal <b aria-hidden="true">↗</b></span>
+            </a>
+            <a class="partner-link partner-delivery" href="{% url 'delivery_portal' %}">
+                <span class="partner-index">02 / DELIVERY PARTNERS</span>
+                <span class="partner-link-title">Make every delivery count.</span>
+                <span class="partner-link-action">Open delivery portal <b aria-hidden="true">↗</b></span>
+            </a>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const locationState = new URLSearchParams(window.location.search).get("state");
+    if (locationState) {
+        document.querySelectorAll(".cuisine-tile").forEach((tile) => {
+            const url = new URL(tile.href);
+            url.searchParams.set("state", locationState);
+            tile.href = url.toString();
+        });
+    }
+    const heroVideo = document.querySelector(".customer-hero-video");
+    if (heroVideo && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        heroVideo.pause();
+        heroVideo.removeAttribute("autoplay");
+    }
+</script>
+{% endblock %}

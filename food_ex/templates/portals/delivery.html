@@ -1,0 +1,54 @@
+{% extends "portals/delivery_base.html" %}
+
+{% block title %}Delivery Portal | Food_Ex{% endblock %}
+
+{% block content %}
+<section class="portal-page portal-delivery">
+    <div class="container py-5">
+        {% if wrong_role %}
+            <div class="alert alert-warning" role="alert">
+                This session is signed in as another account type. Log out before entering the delivery portal.
+            </div>
+        {% endif %}
+        {% if customer_session_active %}
+            <div class="alert alert-info border shadow-sm mb-4 d-flex flex-wrap justify-content-between align-items-center py-2" role="alert">
+                <div>
+                    <strong>👤 Customer account active:</strong> {{ request.customer_user.first_name|default:request.customer_user.username }}
+                    <small class="text-muted d-block">You can log in as a Delivery Partner below without losing your customer session.</small>
+                </div>
+                <a href="{% url 'customer_portal' %}" class="btn btn-sm btn-outline-primary">Customer Storefront ↗</a>
+            </div>
+        {% endif %}
+        <div class="portal-heading">
+            <p class="portal-eyebrow">FOOD_EX / DELIVERY NETWORK</p>
+            <h1>Your delivery<br>shift starts here.</h1>
+            <p class="portal-intro">Open your assigned deliveries, pick up orders, and keep customers updated through every handoff.</p>
+            <div class="portal-actions">
+                <a class="btn btn-dark btn-lg" href="{% url 'delivery_login' %}">Partner log in</a>
+                <a class="btn btn-outline-dark btn-lg" href="{% url 'delivery_register' %}">Join the delivery team</a>
+            </div>
+        </div>
+
+        <div class="portal-workflows">
+            <a class="portal-workflow" href="{% url 'delivery_dashboard' %}">
+                <span class="portal-step">01 / ASSIGNMENTS</span>
+                <h2>Your deliveries</h2>
+                <p>Review assigned orders and their current delivery status.</p>
+                <span class="portal-arrow" aria-hidden="true">↗</span>
+            </a>
+            <a class="portal-workflow" href="{% url 'restaurant_list' %}">
+                <span class="portal-step">02 / PICKUP</span>
+                <h2>Restaurant directory</h2>
+                <p>Find the restaurants serving customers across the network.</p>
+                <span class="portal-arrow" aria-hidden="true">↗</span>
+            </a>
+            <a class="portal-workflow" href="{% url 'customer_portal' %}">
+                <span class="portal-step">03 / CUSTOMER SITE</span>
+                <h2>Food_Ex storefront</h2>
+                <p>Open the customer-facing restaurant and menu directory.</p>
+                <span class="portal-arrow" aria-hidden="true">↗</span>
+            </a>
+        </div>
+    </div>
+</section>
+{% endblock %}

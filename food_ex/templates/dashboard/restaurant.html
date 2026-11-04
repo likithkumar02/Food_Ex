@@ -1,0 +1,87 @@
+{% extends "portals/restaurant_base.html" %}
+{% load static %}
+
+{% block title %}Restaurant Dashboard | Food_Ex{% endblock %}
+
+{% block content %}
+<section class="workspace workspace-restaurant">
+    <div class="container py-5">
+        <header class="workspace-header">
+            <p class="portal-eyebrow">RESTAURANT / OPERATIONS</p>
+            <h1>{% if restaurant %}{{ restaurant.name }}{% else %}Your restaurant workspace{% endif %}</h1>
+            <p>Welcome, {{ user.first_name|default:user.username }}. Keep service moving from here.</p>
+            {% if restaurant and restaurant.is_approved_for_operations %}
+            <div class="portal-actions">
+                <a class="btn btn-dark" href="{% url 'restaurant_order_management' %}">Review orders</a>
+                <a class="btn btn-outline-dark" href="{% url 'restaurant_management' %}">Manage menu</a>
+                <a class="btn btn-outline-danger" href="{% url 'location_restaurant' %}">📍 Location Settings</a>
+            </div>
+            {% endif %}
+        </header>
+        {% if restaurant.status == "pending" %}
+            <div class="alert alert-info" role="status">Your restaurant registration is under verification. You can set your business location in <a href="{% url 'location_restaurant' %}" class="alert-link">Location Settings</a> while waiting for approval.</div>
+        {% elif restaurant.status == "rejected" %}
+            <div class="alert alert-danger" role="alert">
+                <strong>Restaurant registration rejected.</strong>
+                {% if restaurant.status_reason %}<p class="mb-0 mt-2">Reason: {{ restaurant.status_reason }}</p>{% endif %}
+            </div>
+        {% elif restaurant.status == "suspended" %}
+            <div class="alert alert-warning" role="status">Your restaurant account is suspended. Contact Food_Ex support for details.</div>
+        {% elif not restaurant %}
+            <div class="alert alert-warning" role="status">Your restaurant profile has not been created yet.</div>
+        {% endif %}
+
+        {% if approved %}
+        <div class="workspace-stats">
+            <div class="workspace-stat"><span>Awaiting response</span><strong>{{ pending_count }}</strong></div>
+            <div class="workspace-stat"><span>All orders</span><strong>{{ order_count }}</strong></div>
+            <div class="workspace-stat"><span>Menu items</span><strong>{{ menu_count }}</strong></div>
+        </div>
+        {% if restaurant %}
+        <section class="workspace-section restaurant-owner-store" aria-labelledby="owner-store-heading">
+            <div class="workspace-section-heading">
+                <h2 id="owner-store-heading">Restaurant details</h2>
+                <a href="{% url 'restaurant_management' %}">Edit details</a>
+            </div>
+            {% if restaurant.image %}<img class="restaurant-management-image" src="{{ restaurant.image.url }}" alt="{{ restaurant.name }}">{% endif %}
+            <dl class="customer-contact-list">
+                <div><dt>Cuisine</dt><dd>{{ restaurant.cuisine_type }}</dd></div>
+                <div><dt>Address</dt><dd>{{ restaurant.address }}</dd></div>
+                <div><dt>Phone</dt><dd>{{ restaurant.phone }}</dd></div>
+                <div><dt>Description</dt><dd>{{ restaurant.description|default:"Add a restaurant description" }}</dd></div>
+            </dl>
+        </section>
+        <section class="workspace-section">
+            <div class="workspace-section-heading">
+                <h2>Menu and prices</h2>
+                <a href="{% url 'restaurant_management' %}">Manage menu</a>
+            </div>
+            {% for item in menu_items %}
+                <div class="restaurant-menu-admin-row">
+                    {% if item.image %}<img src="{{ item.image.url }}" alt="{{ item.name }}" loading="lazy">{% endif %}
+                    <span><strong>{{ item.name }}</strong><small>{{ item.category }}{% if not item.is_available %} · Unavailable{% endif %}</small></span>
+                    <strong>₹{{ item.price }}</strong>
+                </div>
+            {% empty %}
+                <div class="workspace-empty">Add your first menu item to show dishes and prices here.</div>
+            {% endfor %}
+        </section>
+        {% endif %}
+        <section class="workspace-section">
+            <div class="workspace-section-heading">
+                <h2>Latest orders</h2>
+                <a href="{% url 'restaurant_order_management' %}">Manage orders</a>
+            </div>
+            {% for order in orders %}
+                <div class="workspace-row">
+                    <span><strong>Order #{{ order.id }}</strong><small>{{ order.user.username }} · {{ order.created_at|date:"M j, Y" }}</small></span>
+                    <span class="workspace-row-end">{{ order.get_status_display }} <b>₹{{ order.total_price }}</b></span>
+                </div>
+            {% empty %}
+                <div class="workspace-empty">New customer orders will appear here.</div>
+            {% endfor %}
+        </section>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

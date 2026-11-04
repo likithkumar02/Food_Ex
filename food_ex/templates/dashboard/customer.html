@@ -1,0 +1,155 @@
+{% extends "portals/customer_base.html" %}
+
+{% block title %}Customer Dashboard | Food_Ex{% endblock %}
+
+{% block content %}
+<section class="workspace workspace-customer">
+    <div class="container py-5">
+
+        {% if show_auth_prompt %}
+            <div class="row justify-content-center">
+                <div class="col-lg-7">
+                    <div class="card border-0 shadow-lg overflow-hidden">
+                        <div class="row g-0">
+                            <div class="col-md-5 bg-gradient text-white d-none d-md-flex flex-column justify-content-center p-4" style="background: linear-gradient(135deg, #dc3545 0%, #a71d2a 100%);">
+                                <div class="fs-1 mb-3">👤</div>
+                                <h3 class="fw-bold mb-2">Welcome to Food_Ex</h3>
+                                <p class="opacity-90 mb-0">Order from local restaurants, track your food live, and pay safely — all from one account.</p>
+                                <ul class="mt-4 list-unstyled small opacity-90">
+                                    <li class="mb-2">✔ Over 10,000+ restaurants nearby</li>
+                                    <li class="mb-2">✔ Live order tracking every 5 seconds</li>
+                                    <li class="mb-2">✔ Cash on Delivery or online payments</li>
+                                    <li class="mb-0">✔ 100% order protection guarantee</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-7">
+                                <div class="p-4 p-md-5">
+                                    <p class="portal-eyebrow mb-2">CUSTOMER PORTAL</p>
+                                    <h1 class="fw-bold mb-1">Access your account</h1>
+                                    <p class="text-muted mb-4">Log in to place orders, track deliveries, and see your history. New to Food_Ex? Create a free account.</p>
+
+                                    <div class="d-grid gap-3">
+                                        <a href="{% url 'customer_login' %}?next={% url 'customer_dashboard' %}" class="btn btn-danger btn-lg py-3 fw-bold">
+                                            Log in to your account →
+                                        </a>
+                                        <div class="position-relative my-2">
+                                            <hr>
+                                            <span class="position-absolute top-50 start-50 translate-middle badge bg-light text-muted border">new customer</span>
+                                        </div>
+                                        <a href="{% url 'customer_register' %}" class="btn btn-outline-danger btn-lg py-3 fw-bold">
+                                            Create a new account (Sign up) →
+                                        </a>
+                                    </div>
+
+                                    <div class="mt-4 bg-light rounded-4 p-3">
+                                        <p class="small mb-1 text-muted">Forgot password or having trouble?</p>
+                                        <a href="{% url 'forgot_password' %}" class="small text-decoration-none">🔑 Reset your password here</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        {% else %}
+
+            <form id="customerGpsForm" hidden>
+                {% csrf_token %}
+            </form>
+            <header class="section-heading mt-4 mb-4">
+                <p class="customer-welcome-label mb-1">WELCOME BACK</p>
+                <h1 class="h2 mb-1">Good to see you, {{ user.first_name|default:user.username }}.</h1>
+                <p class="text-muted mb-0">Discover local favorites and popular cuisines.</p>
+            </header>
+
+            {% if state %}
+                <div class="alert alert-light border mb-4 py-2 small d-flex justify-content-between align-items-center">
+                    <div><strong>📍 Location Filter:</strong> {{ state }}</div>
+                    <a href="{% url 'customer_portal' %}" class="text-danger small fw-semibold text-decoration-none">Clear filter</a>
+                </div>
+            {% endif %}
+
+            <section aria-labelledby="customerRestaurantsHeading">
+                <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+                    <div>
+                        <p class="portal-eyebrow mb-2">AVAILABLE NEAR YOU</p>
+                        <h2 id="customerRestaurantsHeading" class="h3 mb-0">
+                            {% if state %}Restaurants in {{ state }}{% else %}Browse restaurants{% endif %}
+                        </h2>
+                    </div>
+                    <a class="btn btn-outline-danger" href="{% url 'customer_portal' %}{% if state %}?state={{ state|urlencode }}{% endif %}">
+                        See all restaurants
+                    </a>
+                </div>
+
+                {% if restaurants %}
+                    <div class="row g-4">
+                        {% for restaurant in restaurants %}
+                            <div class="col-md-6 col-lg-4">
+                                <article class="card h-100 border-0 shadow-sm restaurant-card">
+                                    {% if restaurant.image %}
+                                        <img class="restaurant-list-image" src="{{ restaurant.image.url }}" alt="{{ restaurant.name }}" loading="lazy">
+                                    {% else %}
+                                        <div class="restaurant-list-image bg-light d-flex align-items-center justify-content-center text-muted fs-1" aria-hidden="true">🍽️</div>
+                                    {% endif %}
+                                    <div class="card-body d-flex flex-column">
+                                        <span class="badge bg-danger-subtle text-danger align-self-start mb-2">{{ restaurant.cuisine_type }}</span>
+                                        <h3 class="h5 card-title mb-1">{{ restaurant.name }}</h3>
+                                        <p class="text-muted small mb-1">
+                                            📍 {{ restaurant.address }}{% if restaurant.district %}, {{ restaurant.district }}{% endif %}{% if restaurant.state %}, {{ restaurant.state }}{% endif %}
+                                        </p>
+                                        <p class="text-muted small mb-2">📞 {{ restaurant.phone }}</p>
+                                        <p class="card-text text-secondary small flex-grow-1">{{ restaurant.description }}</p>
+
+                                        {% for item in restaurant.menu_items.all %}
+                                            {% if item.is_available and forloop.counter <= 3 %}
+                                                <div class="restaurant-list-menu-row"><span>{{ item.name }}</span><strong>₹{{ item.price }}</strong></div>
+                                            {% endif %}
+                                        {% endfor %}
+                                        <a class="btn btn-danger mt-3" href="{% url 'restaurant_detail' restaurant.pk %}">View menu</a>
+                                    </div>
+                                </article>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% elif state %}
+                    <div class="empty-state">
+                        <h3>No approved restaurants in {{ state }} yet</h3>
+                        <p>Try browsing all available locations.</p>
+                        <a class="btn btn-danger" href="{% url 'customer_portal' %}">Browse all restaurants</a>
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <h3>No restaurants are available yet</h3>
+                        <p>Approved restaurant listings will appear here.</p>
+                    </div>
+                {% endif %}
+            </section>
+
+        {% endif %}
+    </div>
+</section>
+{% endblock %}
+
+{% block customer_header_location %}
+    <div class="customer-location-action">
+        <button
+            id="customerGpsButton"
+            class="btn btn-outline-danger btn-sm"
+            type="button"
+            data-update-url="{% url 'api_location_customer_update' %}"
+            data-dashboard-url="{% url 'customer_dashboard' %}"
+            aria-label="Use my current location"
+        >
+            <span aria-hidden="true">📍</span> Location
+        </button>
+        <span id="customerGpsFeedback" class="customer-location-feedback" role="status" aria-live="polite"></span>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+{% load static %}
+<script src="{% static 'location/js/location.js' %}"></script>
+<script src="{% static 'customer/js/dashboard.js' %}"></script>
+{% endblock %}

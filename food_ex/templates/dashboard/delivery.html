@@ -1,0 +1,34 @@
+{% extends "portals/delivery_base.html" %}
+
+{% block title %}Delivery Dashboard | Food_Ex{% endblock %}
+
+{% block content %}
+<section class="workspace workspace-delivery">
+    <div class="container py-5">
+        <header class="workspace-header">
+            <p class="portal-eyebrow">DELIVERY / MY SHIFT</p>
+            <h1>Delivery workspace</h1>
+            <p>Welcome, {{ user.first_name|default:user.username }}. Your assigned work is collected here.</p>
+            <a class="btn btn-dark" href="{% url 'delivery_dashboard' %}">Open assignments</a>
+        </header>
+        <div class="workspace-stats">
+            <div class="workspace-stat"><span>Active deliveries</span><strong>{{ active_count }}</strong></div>
+            <div class="workspace-stat"><span>All assignments</span><strong>{{ delivery_count }}</strong></div>
+        </div>
+        <section class="workspace-section">
+            <div class="workspace-section-heading">
+                <h2>Recent assignments</h2>
+                <a href="{% url 'delivery_dashboard' %}">View all</a>
+            </div>
+            {% for assignment in assignments %}
+                <a class="workspace-row" href="{% url 'delivery_detail' assignment.id %}">
+                    <span><strong>Order #{{ assignment.order.id }}</strong><small>{{ assignment.order.restaurant.name }} · {{ assignment.order.delivery_address }}</small></span>
+                    <span class="workspace-row-end">{{ assignment.get_status_display }} <b>View ↗</b></span>
+                </a>
+            {% empty %}
+                <div class="workspace-empty">Assigned delivery requests will appear here.</div>
+            {% endfor %}
+        </section>
+    </div>
+</section>
+{% endblock %}

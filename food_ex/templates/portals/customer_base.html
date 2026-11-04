@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block site_header %}
+<nav class="navbar navbar-expand-lg food-navbar customer-site-navbar" aria-label="Main navigation">
+    <div class="container">
+        <a class="navbar-brand food-logo" href="{% url 'home' %}">
+            <span class="food-logo-mark" aria-hidden="true">F</span>
+            <span class="food-logo-name">FOOD_EX<small>LOCAL DELIVERY</small></span>
+        </a>
+
+        <form class="customer-search-box" method="get" action="{% url 'customer_portal' %}" role="search" aria-label="Search restaurants">
+            <label class="visually-hidden" for="customerHeaderSearch">Search for restaurant, cuisine or a dish</label>
+            <span class="customer-search-icon" aria-hidden="true">⌕</span>
+            <input id="customerHeaderSearch" type="search" name="q" value="{{ request.GET.q|default:'' }}" placeholder="Search restaurants or dishes">
+            {% if request.GET.area %}<input type="hidden" name="area" value="{{ request.GET.area }}">{% endif %}
+            {% if request.GET.district %}<input type="hidden" name="district" value="{{ request.GET.district }}">{% endif %}
+            {% if request.GET.city %}<input type="hidden" name="city" value="{{ request.GET.city }}">{% endif %}
+            {% if request.GET.state %}<input type="hidden" name="state" value="{{ request.GET.state }}">{% endif %}
+            {% if request.GET.lat %}<input type="hidden" name="lat" value="{{ request.GET.lat }}">{% endif %}
+            {% if request.GET.lon %}<input type="hidden" name="lon" value="{{ request.GET.lon }}">{% endif %}
+            <button class="customer-search-submit" type="submit" aria-label="Search">→</button>
+        </form>
+
+        <div class="header-actions customer-site-actions">
+            {% if user.is_authenticated and user.role == "customer" %}
+            <details class="customer-account-menu">
+                <summary aria-label="Open account menu">
+                    {% if user.customer_profile.profile_image %}
+                    <img class="customer-account-avatar" src="{{ user.customer_profile.profile_image.url }}" alt="">
+                    {% else %}
+                    <span class="customer-account-avatar customer-account-avatar-fallback" aria-hidden="true">{{ user.first_name|default:user.username|first|upper }}</span>
+                    {% endif %}
+                    <span class="customer-account-trigger-name">{{ user.first_name|default:user.username }}</span>
+                    <span class="customer-account-caret" aria-hidden="true">▾</span>
+                </summary>
+                <div class="customer-account-dropdown">
+                    <div class="customer-account-details">
+                        <strong>{{ user.get_full_name|default:user.username }}</strong>
+                        <span>{{ user.email }}</span>
+                    </div>
+                    <a href="{% url 'profile' %}">My profile</a>
+                    <a href="{% url 'order_history' %}">My orders</a>
+                    <a href="{% url 'location_customer' %}">Delivery location</a>
+                    <a href="{% url 'settings' %}">Settings</a>
+                    <form method="post" action="{% url 'customer_logout' %}">
+                        {% csrf_token %}
+                        <button type="submit">Log out</button>
+                    </form>
+                    <hr class="my-1">
+                    <form method="post" action="{% url 'delete_account' %}" onsubmit="return confirm('Permanently delete your customer account ({{ user.username }})? This action cannot be undone.');">
+                        {% csrf_token %}
+                        <button type="submit" class="text-danger fw-semibold">Delete account</button>
+                    </form>
+                </div>
+            </details>
+            {% block customer_header_location %}{% endblock %}
+            {% else %}
+            <a href="{% url 'customer_login' %}" class="customer-login-link">Log in</a>
+            <a href="{% url 'customer_register' %}" class="header-cta customer-signup-link">Sign up</a>
+            {% endif %}
+        </div>
+    </div>
+</nav>
+{% endblock %}
+
+{% block primary_navigation %}{% endblock %}
+
+{% block account_navigation %}{% endblock %}
