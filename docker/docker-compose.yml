@@ -1,0 +1,57 @@
+services:
+  db:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_NAME:-food_ex}
+      MYSQL_USER: ${DOCKER_DB_USER:?Set DOCKER_DB_USER in .env}
+      MYSQL_PASSWORD: ${DOCKER_DB_PASSWORD:?Set DOCKER_DB_PASSWORD in .env}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - mysqladmin ping --host=127.0.0.1 --user=root --password="$${MYSQL_ROOT_PASSWORD}" --silent
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+  web:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    environment:
+      DJANGO_SETTINGS_MODULE: food_ex.settings.dev
+      DEBUG: ${DEBUG:-True}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1}
+      USE_SQLITE: "False"
+      DB_NAME: ${DB_NAME:-food_ex}
+      DB_USER: ${DOCKER_DB_USER:?Set DOCKER_DB_USER in .env}
+      DB_PASSWORD: ${DOCKER_DB_PASSWORD:?Set DOCKER_DB_PASSWORD in .env}
+      DB_HOST: db
+      DB_PORT: ${DB_PORT:-3306}
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${WEB_PORT:-8000}:8000"
+    volumes:
+      - media_data:/app/media
+      - static_data:/app/staticfiles
+    command:
+      - sh
+      - -c
+      - >-
+        python manage.py migrate --noinput &&
+        python manage.py collectstatic --noinput &&
+        exec gunicorn food_ex.wsgi:application --bind 0.0.0.0:8000 --workers 2
+
+volumes:
+  mysql_data:
+  media_data:
+  static_data:
