@@ -16,6 +16,9 @@ python manage.py createsuperuser
 python manage.py runserver
 ```
 
+To run the application with Docker and MySQL, follow
+[docker/DOCKER_GUIDE.md](docker/DOCKER_GUIDE.md).
+
 The project now keeps environment-specific Django settings under `food_ex/settings/`:
 - `food_ex.settings.dev` for local development
 - `food_ex.settings.prod` for production overrides
