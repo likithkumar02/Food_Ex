@@ -28,8 +28,12 @@ def restaurant_listing_context(request):
     lat = request.GET.get("lat", "").strip() or request.GET.get("latitude", "").strip()
     lon = request.GET.get("lon", "").strip() or request.GET.get("longitude", "").strip()
 
-    # Automatically use profile or session location if no explicit location parameter was passed
-    if not (state or district or city or area or lat):
+    # An explicitly empty state means the customer selected "All states".
+    location_was_selected = any(
+        key in request.GET
+        for key in ("state", "district", "city", "area", "lat", "latitude")
+    )
+    if not location_was_selected and not (state or district or city or area or lat):
         if request.user.is_authenticated and getattr(request.user, "role", "") == "customer":
             profile = getattr(request.user, "customer_profile", None)
             if profile:
@@ -52,6 +56,13 @@ def restaurant_listing_context(request):
         status="approved",
         is_active=True,
     ).prefetch_related("menu_items").order_by("name")
+    states = (
+        Restaurant.objects.filter(status="approved", is_active=True)
+        .exclude(state="")
+        .values_list("state", flat=True)
+        .distinct()
+        .order_by("state")
+    )
 
     filter_label = None
     fallback_reason = None
@@ -217,6 +228,7 @@ def restaurant_listing_context(request):
         "city": city,
         "district": district,
         "state": state,
+        "states": states,
         "user_lat": lat,
         "user_lon": lon,
         "filter_label": filter_label,
@@ -396,4 +408,3 @@ def restaurant_account_settings_view(request):
         "edit_mode": edit_mode,
     }
     return render(request, "restaurant/account_settings.html", context)
-

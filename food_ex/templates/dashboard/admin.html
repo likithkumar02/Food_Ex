@@ -1,56 +1,186 @@
 {% extends "base.html" %}
+{% load static %}
 
-{% block title %}Admin Dashboard | Food_Ex{% endblock %}
+{% block title %}Control Tower | Food_Ex{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'food_ex/css/admin-dashboard.css' %}">
+{% endblock %}
 
 {% block content %}
-<section class="container py-5">
-    <div class="row">
-        <div class="col-lg-8 mx-auto">
-            <div class="card border-0 shadow-sm p-4">
-                <h2 class="mb-3">Admin Dashboard</h2>
-                <p class="text-muted">Monitor operations, users, and platform performance.</p>
+<div class="admin-dashboard">
+    <header class="admin-dashboard__header">
+        <div>
+            <p class="admin-eyebrow">Food_Ex operations</p>
+            <h1>Control Tower</h1>
+            <p class="admin-dashboard__subtitle">A live view of platform activity and settlements.</p>
+        </div>
+        <form class="admin-range" method="get">
+            <label for="analytics-range">Analytics period</label>
+            <select id="analytics-range" name="range" class="form-select" onchange="this.form.submit()">
+                <option value="7" {% if range_days == 7 %}selected{% endif %}>Last 7 days</option>
+                <option value="30" {% if range_days == 30 %}selected{% endif %}>Last 30 days</option>
+                <option value="90" {% if range_days == 90 %}selected{% endif %}>Last 90 days</option>
+            </select>
+        </form>
+    </header>
 
-                <div class="row g-3 mt-3">
-                    <div class="col-md-6">
-                        <div class="border rounded p-3 h-100">
-                            <h5>Platform Metrics</h5>
-                            <p class="mb-0 text-muted">Overview of restaurants, deliveries, and revenue.</p>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="border rounded p-3 h-100">
-                            <h5>User Management</h5>
-                            <p class="mb-0 text-muted">Review and manage all account roles.</p>
-                        </div>
-                    </div>
+    <section class="admin-metric-grid" aria-label="Platform overview">
+        <article class="admin-metric-card">
+            <span class="admin-metric-card__label">Customers</span>
+            <strong>{{ metrics.customers }}</strong>
+            <span class="admin-metric-card__hint">Registered accounts</span>
+        </article>
+        <article class="admin-metric-card">
+            <span class="admin-metric-card__label">Restaurants</span>
+            <strong>{{ metrics.restaurants }}</strong>
+            <span class="admin-metric-card__hint">{{ pending_restaurant_count }} awaiting review</span>
+        </article>
+        <article class="admin-metric-card">
+            <span class="admin-metric-card__label">Delivery partners</span>
+            <strong>{{ metrics.delivery_partners }}</strong>
+            <span class="admin-metric-card__hint">{{ metrics.online_partners }} currently online</span>
+        </article>
+        <article class="admin-metric-card">
+            <span class="admin-metric-card__label">Total orders</span>
+            <strong>{{ metrics.orders }}</strong>
+            <span class="admin-metric-card__hint">{{ metrics.active_orders }} active now</span>
+        </article>
+        <article class="admin-metric-card admin-metric-card--accent">
+            <span class="admin-metric-card__label">Completed orders</span>
+            <strong>{{ metrics.completed_orders }}</strong>
+            <span class="admin-metric-card__hint">Delivered successfully</span>
+        </article>
+        <article class="admin-metric-card">
+            <span class="admin-metric-card__label">Cancelled / rejected</span>
+            <strong>{{ metrics.cancelled_orders }}</strong>
+            <span class="admin-metric-card__hint">Closed without delivery</span>
+        </article>
+    </section>
+
+    <section class="admin-finance-grid" aria-label="Lifetime settlement totals">
+        <article class="admin-panel admin-finance-card">
+            <span class="admin-metric-card__label">Platform revenue</span>
+            <strong>₹{{ metrics.platform_revenue|floatformat:2 }}</strong>
+            <span class="admin-metric-card__hint">Commission and platform fees from completed orders</span>
+        </article>
+        <article class="admin-panel admin-finance-card">
+            <span class="admin-metric-card__label">Restaurant payouts</span>
+            <strong>₹{{ metrics.restaurant_payouts|floatformat:2 }}</strong>
+            <span class="admin-metric-card__hint">Recorded restaurant earnings</span>
+        </article>
+        <article class="admin-panel admin-finance-card">
+            <span class="admin-metric-card__label">Delivery earnings</span>
+            <strong>₹{{ metrics.delivery_earnings|floatformat:2 }}</strong>
+            <span class="admin-metric-card__hint">Recorded delivery partner payouts</span>
+        </article>
+    </section>
+
+    <section class="admin-panel admin-chart-panel">
+        <div class="admin-panel__heading">
+            <div>
+                <p class="admin-eyebrow">Performance</p>
+                <h2>Orders and platform revenue</h2>
+            </div>
+            <span class="admin-chart-legend"><i></i>Revenue · ₹</span>
+        </div>
+        <div class="admin-chart-wrap">
+            <canvas id="admin-activity-chart" aria-label="Daily order volume and platform revenue" role="img"></canvas>
+        </div>
+        <p id="admin-chart-error" class="admin-empty-note" hidden>Chart library could not be loaded. The overview metrics remain available.</p>
+        {{ chart_data|json_script:"admin-chart-data" }}
+    </section>
+
+    <div class="admin-content-grid">
+        <section class="admin-panel">
+            <div class="admin-panel__heading">
+                <div>
+                    <p class="admin-eyebrow">Operations</p>
+                    <h2>Recent orders</h2>
                 </div>
-
-                <div class="mt-4">
-                    <h4>Users</h4>
-                    <div class="list-group mt-3">
-                        {% for user in users %}
-                            <div class="list-group-item d-flex justify-content-between align-items-center">
-                                <div>
-                                    <strong>{{ user.username }}</strong>
-                                    <div class="text-muted small">{{ user.get_role_display }} ({{ user.email }})</div>
-                                </div>
-                                <div class="d-flex align-items-center gap-2">
-                                    <span class="badge bg-danger-subtle text-danger">{{ user.role }}</span>
-                                    {% if user.pk != request.user.pk %}
-                                    <form method="post" action="{% url 'admin_delete_user' user.id %}" onsubmit="return confirm('Permanently delete user {{ user.username }} ({{ user.role }})?');" class="d-inline">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn btn-outline-danger btn-sm py-0 px-2" style="font-size: 0.78rem;">Delete</button>
-                                    </form>
-                                    {% endif %}
-                                </div>
-                            </div>
+                <span class="admin-count">{{ recent_orders|length }}</span>
+            </div>
+            <div class="admin-table-scroll">
+                <table class="table admin-table align-middle mb-0">
+                    <thead>
+                        <tr><th>Order</th><th>Restaurant</th><th>Status</th><th>Updated</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for order in recent_orders %}
+                        <tr>
+                            <td><strong>{{ order.code|default:order.pk }}</strong></td>
+                            <td>{{ order.restaurant.name }}</td>
+                            <td><span class="admin-status">{{ order.get_status_display }}</span></td>
+                            <td>{{ order.updated_at|date:"M j, H:i" }}</td>
+                        </tr>
                         {% empty %}
-                            <div class="list-group-item">No users found.</div>
+                        <tr><td colspan="4" class="admin-empty-note">No orders have been placed yet.</td></tr>
                         {% endfor %}
-                    </div>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="admin-panel">
+            <div class="admin-panel__heading">
+                <div>
+                    <p class="admin-eyebrow">Onboarding</p>
+                    <h2>Restaurants to review</h2>
                 </div>
+                <span class="admin-count">{{ pending_restaurant_count }}</span>
+            </div>
+            <div class="admin-pending-list">
+                {% for restaurant in pending_restaurants %}
+                <div class="admin-pending-item">
+                    <div class="admin-pending-item__mark" aria-hidden="true">{{ restaurant.name|slice:":1"|upper }}</div>
+                    <div class="admin-pending-item__details">
+                        <strong>{{ restaurant.name }}</strong>
+                        <span>{{ restaurant.owner.get_full_name|default:restaurant.owner.username }} · {{ restaurant.city|default:"Location not set" }}</span>
+                    </div>
+                    <span class="admin-status admin-status--pending">Pending</span>
+                </div>
+                {% empty %}
+                <p class="admin-empty-note">All restaurant applications have been reviewed.</p>
+                {% endfor %}
+            </div>
+        </section>
+    </div>
+
+    <section class="admin-panel admin-users-panel">
+        <div class="admin-panel__heading">
+            <div>
+                <p class="admin-eyebrow">Access management</p>
+                <h2>Platform users</h2>
             </div>
         </div>
-    </div>
-</section>
+        <div class="admin-table-scroll">
+            <div class="list-group list-group-flush admin-user-list">
+                {% for user in users %}
+                <div class="list-group-item admin-user-row">
+                    <div>
+                        <strong>{{ user.username }}</strong>
+                        <div class="admin-user-row__meta">{{ user.get_role_display }} · {{ user.email }}</div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="admin-status">{{ user.role }}</span>
+                        {% if user.pk != request.user.pk %}
+                        <form method="post" action="{% url 'admin_delete_user' user.id %}" onsubmit="return confirm('Permanently delete user {{ user.username }} ({{ user.role }})?');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+                {% empty %}
+                <p class="admin-empty-note">No users found.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="{% static 'food_ex/js/admin-dashboard.js' %}"></script>
 {% endblock %}

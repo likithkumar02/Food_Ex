@@ -35,11 +35,18 @@ Open these local interfaces:
 - Restaurant account: `/restaurant/login/` and `/restaurant/register/`
 - Delivery partner: `/delivery/`
 - Delivery account: `/delivery/login/` and `/delivery/register/`
+- Admin Control Tower: `/dashboard/admin/` (sign in with an admin-role account)
 - Django Admin: `/admin/`
+
+The Admin Control Tower summarizes existing orders and recorded restaurant earnings. Its chart supports 7-, 30-, and 90-day views; financial totals exclude cancelled earnings.
 
 Forgot-password requests use Django's single-use reset tokens. During development, email is printed to the runserver console because the configured backend is the console email backend. Authenticated users can also change their password from Account Settings.
 
 The root homepage is customer-facing; its navigation links lead to restaurant and delivery portals. Portal registration sets the role on the server and creates the corresponding restaurant or delivery profile.
+
+### Restaurant partner demo catalogue
+
+Run `python manage.py seed_restaurant_partners` against a local development database to create ten synthetic, approved restaurant-partner accounts with ten priced menu items each. The command generates unique passwords and writes the usernames and passwords to `.restaurant_partner_demo_credentials.csv`, which is ignored by Git. Re-running the command resets these demo passwords and replaces that file. Do not run this demo seeder against production data.
 
 ## Database
 

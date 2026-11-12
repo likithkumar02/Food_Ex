@@ -11,6 +11,11 @@ from .views import (
 urlpatterns = [
     path("restaurants/", restaurant_list_view, name="restaurant_list"),
     path("restaurants/<int:restaurant_id>/", restaurant_detail_view, name="restaurant_detail"),
-    path("restaurants/manage/", restaurant_management_view, name="restaurant_management"),
+    path("restaurant/menu/", restaurant_management_view, name="restaurant_management"),
+    path(
+        "restaurants/manage/",
+        restaurant_management_view,
+        name="restaurant_management_legacy",
+    ),
     path("restaurant/account-settings/", restaurant_account_settings_view, name="restaurant_account_settings"),
 ]

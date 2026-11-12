@@ -1,11 +1,16 @@
+import csv
+import tempfile
 from decimal import Decimal
+from pathlib import Path
 
 from django.contrib.auth import get_user_model
+from django.core.management import call_command
 from django.db import connection
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework.test import APIClient
 
+from customer.models import CustomerProfile
 from .models import MenuItem, Restaurant
 
 User = get_user_model()
@@ -209,6 +214,119 @@ class RestaurantModelTests(TestCase):
         self.assertContains(area_response, matching.name)
         self.assertNotContains(area_response, other.name)
 
+    def test_customer_can_browse_all_states_or_filter_by_state(self):
+        matching = Restaurant.objects.create(
+            owner=self.owner,
+            name="Andhra Spice",
+            cuisine_type="Indian",
+            address="Beach Road",
+            city="Visakhapatnam",
+            state="Andhra Pradesh",
+            phone="9876543211",
+            status="approved",
+            is_active=True,
+        )
+        other = Restaurant.objects.create(
+            owner=self.owner,
+            name="Karnataka Kitchen",
+            cuisine_type="Indian",
+            address="MG Road",
+            city="Bengaluru",
+            state="Karnataka",
+            phone="9876543212",
+            status="approved",
+            is_active=True,
+        )
+        customer = User.objects.create_user(
+            username="state_filter_customer",
+            email="state-filter@example.com",
+            password="test-password-123",
+            role="customer",
+        )
+        CustomerProfile.objects.create(user=customer, state="Andhra Pradesh")
+        self.client.force_login(customer)
+
+        all_states_response = self.client.get(
+            reverse("customer_portal"),
+            {"state": ""},
+        )
+        self.assertContains(all_states_response, matching.name)
+        self.assertContains(all_states_response, other.name)
+        self.assertEqual(all_states_response.context["state"], "")
+        self.assertContains(all_states_response, "All states")
+
+        filtered_response = self.client.get(
+            reverse("customer_portal"),
+            {"state": "Karnataka"},
+        )
+        self.assertContains(filtered_response, other.name)
+        self.assertNotContains(filtered_response, matching.name)
+
+    def test_seed_restaurant_partners_creates_demo_accounts_and_menu_items(self):
+        from io import StringIO
+
+        with tempfile.TemporaryDirectory() as directory:
+            credentials_path = Path(directory) / "partner-credentials.csv"
+            call_command(
+                "seed_restaurant_partners",
+                credentials_file=str(credentials_path),
+                stdout=StringIO(),
+            )
+            call_command(
+                "seed_restaurant_partners",
+                credentials_file=str(credentials_path),
+                stdout=StringIO(),
+            )
+
+            with credentials_path.open(newline="", encoding="utf-8") as file:
+                credentials = list(csv.DictReader(file))
+
+        self.assertEqual(len(credentials), 10)
+        self.assertEqual(
+            User.objects.filter(
+                username__startswith="foodex_partner_",
+                role="restaurant_owner",
+            ).count(),
+            10,
+        )
+        self.assertEqual(
+            Restaurant.objects.filter(
+                owner__username__startswith="foodex_partner_",
+                status="approved",
+                is_active=True,
+            ).count(),
+            10,
+        )
+        self.assertEqual(
+            MenuItem.objects.filter(
+                restaurant__owner__username__startswith="foodex_partner_",
+            ).count(),
+            100,
+        )
+        self.assertEqual(len({row["password"] for row in credentials}), 10)
+        for row in credentials:
+            user = User.objects.get(username=row["username"])
+            self.assertTrue(user.check_password(row["password"]))
+            self.assertEqual(
+                MenuItem.objects.filter(restaurant__owner=user).count(),
+                10,
+            )
+
+        restaurant = Restaurant.objects.get(name="Dum House Biryani")
+        menu_response = self.client.get(
+            reverse("restaurant_detail", args=[restaurant.pk]),
+        )
+        self.assertEqual(menu_response.status_code, 200)
+        self.assertContains(menu_response, "Chicken Dum Biryani")
+        self.assertContains(menu_response, "₹279.00")
+
+        listing_response = self.client.get(
+            reverse("customer_portal"),
+            {"state": "Andhra Pradesh"},
+        )
+        self.assertContains(listing_response, restaurant.name)
+        self.assertContains(listing_response, "restaurant-list-image-fallback")
+
     def test_homepage_shows_all_approved_restaurants_then_filters_by_state(self):
         matching = Restaurant.objects.create(
             owner=self.owner,
@@ -329,7 +447,7 @@ class RestaurantModelTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "No approved restaurants in Andhra Pradesh yet")
-        self.assertContains(response, 'href="/customer/"', html=False)
+        self.assertContains(response, 'href="/customer/?state="', html=False)
         self.assertContains(response, "Browse all available restaurants")
 
     def test_location_filter_uses_structured_fields_and_falls_back_to_state(self):
@@ -431,11 +549,13 @@ class RestaurantModelTests(TestCase):
 
     def test_restaurant_owner_can_manage_menu(self):
         self.client.force_login(self.owner)
-        response = self.client.get(reverse("restaurant_management"))
+        menu_url = reverse("restaurant_management")
+        self.assertEqual(menu_url, "/restaurant/menu/")
+        response = self.client.get(menu_url)
         self.assertEqual(response.status_code, 200)
 
         response = self.client.post(
-            reverse("restaurant_management"),
+            menu_url,
             {
                 "action": "add_menu_item",
                 "name": "Butter Chicken",
@@ -451,6 +571,32 @@ class RestaurantModelTests(TestCase):
                 name="Butter Chicken",
             ).exists()
         )
+        item = MenuItem.objects.get(restaurant=self.restaurant, name="Butter Chicken")
+        self.assertEqual(item.price, Decimal("299.00"))
+
+        response = self.client.post(
+            menu_url,
+            {
+                "action": "update_menu_item",
+                "item_id": item.pk,
+                "name": item.name,
+                "description": item.description,
+                "price": "325.00",
+                "category": item.category,
+                "is_available": "on",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        item.refresh_from_db()
+        self.assertEqual(item.price, Decimal("325.00"))
+
+    def test_legacy_restaurant_menu_url_still_works(self):
+        self.client.force_login(self.owner)
+
+        response = self.client.get(reverse("restaurant_management_legacy"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Add menu item")
 
     def test_pending_restaurant_owner_sees_customer_visibility_notice(self):
         self.restaurant.status = "pending"
@@ -692,5 +838,3 @@ class RestaurantModelTests(TestCase):
         response = self.client.get(reverse("settings"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Account settings")
-
-

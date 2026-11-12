@@ -170,6 +170,101 @@ class UserRoleTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("users", response.context)
         self.assertContains(response, admin.username)
+        self.assertIn("metrics", response.context)
+        self.assertContains(response, "Control Tower")
+
+    def test_admin_dashboard_uses_recorded_earnings_and_real_order_activity(self):
+        from decimal import Decimal
+
+        from delivery.models import DeliveryPartnerProfile
+        from orders.models import Order
+        from restaurant.models import Restaurant, RestaurantEarning
+        from restaurant.services import record_order_earning
+
+        admin = User.objects.create_user(
+            username="metrics_admin",
+            email="metrics_admin@example.com",
+            password="StrongPass123!",
+            role="admin",
+        )
+        owner = User.objects.create_user(
+            username="metrics_owner",
+            email="metrics_owner@example.com",
+            password="StrongPass123!",
+            role="restaurant_owner",
+        )
+        customer = User.objects.create_user(
+            username="metrics_customer",
+            email="metrics_customer@example.com",
+            password="StrongPass123!",
+            role="customer",
+        )
+        partner = User.objects.create_user(
+            username="metrics_partner",
+            email="metrics_partner@example.com",
+            password="StrongPass123!",
+            role="delivery_partner",
+        )
+        DeliveryPartnerProfile.objects.create(user=partner, is_online=True)
+        restaurant = Restaurant.objects.create(
+            owner=owner,
+            name="Metrics Kitchen",
+            cuisine_type="Indian",
+            address="1 Test Road",
+            phone="9876543210",
+            commission_percent=Decimal("10.00"),
+        )
+        delivered = Order.objects.create(
+            user=customer,
+            restaurant=restaurant,
+            status=Order.STATUS_DELIVERED,
+            delivery_address="Customer address",
+            subtotal=Decimal("100.00"),
+            tax_amount=Decimal("5.00"),
+            delivery_fee=Decimal("40.00"),
+            total_price=Decimal("145.00"),
+        )
+        earning = record_order_earning(delivered)
+        self.assertIsNotNone(earning)
+
+        cancelled_order = Order.objects.create(
+            user=customer,
+            restaurant=restaurant,
+            status=Order.STATUS_DELIVERED,
+            delivery_address="Customer address",
+            subtotal=Decimal("200.00"),
+            tax_amount=Decimal("10.00"),
+            delivery_fee=Decimal("40.00"),
+            total_price=Decimal("250.00"),
+        )
+        cancelled_earning = record_order_earning(cancelled_order)
+        RestaurantEarning.objects.filter(pk=cancelled_earning.pk).update(
+            status="cancelled",
+        )
+        Order.objects.create(
+            user=customer,
+            restaurant=restaurant,
+            status=Order.STATUS_PLACED,
+            delivery_address="Customer address",
+        )
+
+        self.client.force_login(admin)
+        response = self.client.get(reverse("admin_dashboard"), {"range": "30"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["range_days"], 30)
+        metrics = response.context["metrics"]
+        self.assertEqual(metrics["customers"], 1)
+        self.assertEqual(metrics["restaurants"], 1)
+        self.assertEqual(metrics["online_partners"], 1)
+        self.assertEqual(metrics["orders"], 3)
+        self.assertEqual(metrics["active_orders"], 1)
+        self.assertEqual(metrics["completed_orders"], 2)
+        self.assertEqual(metrics["platform_revenue"], Decimal("10.00"))
+        self.assertEqual(metrics["restaurant_payouts"], Decimal("95.00"))
+        self.assertEqual(metrics["delivery_earnings"], Decimal("40.00"))
+        self.assertEqual(len(response.context["chart_data"]["labels"]), 30)
+        self.assertEqual(response.context["chart_data"]["platform_revenue"][-1], 10.0)
 
     def test_guest_customer_dashboard_shows_auth_prompt(self):
         response = self.client.get(reverse("customer_dashboard"))

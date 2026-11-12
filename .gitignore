@@ -27,6 +27,7 @@ database/sample_data.sql
 # Uploaded/runtime data may contain private customer or partner information.
 media/
 staticfiles/
+.restaurant_partner_demo_credentials.csv
 
 .idea/
 .vscode/

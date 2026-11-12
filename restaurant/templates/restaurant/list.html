@@ -5,35 +5,6 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'location/css/location.css' %}">
-<style>
-.location-hero-bar {
-    background: #ffffff;
-    border-radius: 12px;
-    border: 1px solid #f0f0f0;
-    transition: box-shadow 0.2s ease;
-}
-.location-hero-bar:hover {
-    box-shadow: 0 4px 14px rgba(0,0,0,0.06);
-}
-.location-pin-icon {
-    width: 44px;
-    height: 44px;
-    background: #fee2e2;
-    color: #ef4444;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.3rem;
-}
-.restaurant-card {
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-.restaurant-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 18px rgba(0,0,0,0.08) !important;
-}
-</style>
 {% endblock %}
 
 {% block content %}
@@ -52,7 +23,7 @@
                         {% if area or district or city or state %}
                             {% if area %}{{ area }}, {% endif %}{% if district %}{{ district }}, {% elif city %}{{ city }}, {% endif %}{{ state }}
                         {% else %}
-                            Browse all locations
+                            Browse all states
                         {% endif %}
                     </h5>
                     <small class="text-muted" id="locationStatusText">
@@ -75,7 +46,7 @@
                     <span>📍 Auto-detect GPS</span>
                 </button>
                 {% if state or district or city or area %}
-                <a href="{% url 'customer_portal' %}" class="btn btn-outline-secondary btn-sm px-3 py-2">
+                <a href="{% url 'customer_portal' %}?state=" class="btn btn-outline-secondary btn-sm px-3 py-2">
                     ✕ Clear Filter
                 </a>
                 {% endif %}
@@ -158,6 +129,23 @@
         </div>
     {% endif %}
 
+    <form class="restaurant-state-filter mb-4" method="get" action="{% url 'customer_portal' %}">
+        {% if query %}<input type="hidden" name="q" value="{{ query }}">{% endif %}
+        <div>
+            <label for="restaurantStateFilter">Browse restaurants by state</label>
+            <p class="mb-0">Choose a state, or see every available restaurant.</p>
+        </div>
+        <div class="restaurant-state-filter-controls">
+            <select class="form-select" id="restaurantStateFilter" name="state">
+                <option value="" {% if not state %}selected{% endif %}>All states</option>
+                {% for state_option in states %}
+                    <option value="{{ state_option }}" {% if state_option == state %}selected{% endif %}>{{ state_option }}</option>
+                {% endfor %}
+            </select>
+            <button class="btn btn-danger" type="submit">Show restaurants</button>
+        </div>
+    </form>
+
     <!-- ── Fallback Notice when region has no restaurants ── -->
     {% if fallback_reason %}
     <div class="alert alert-warning d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
@@ -165,7 +153,7 @@
             <strong>📍 {{ fallback_reason }}</strong>
             <p class="mb-0 small text-muted">Showing all available restaurants across other regions instead.</p>
         </div>
-        <a href="{% url 'customer_portal' %}" class="btn btn-outline-dark btn-sm">Browse all available restaurants</a>
+        <a href="{% url 'customer_portal' %}?state=" class="btn btn-outline-dark btn-sm">Browse all available restaurants</a>
     </div>
     {% endif %}
 
@@ -179,7 +167,7 @@
             {% if city and city != district %}{{ city }}, {% endif %}
             {% if state %}{{ state }}{% endif %}
         </div>
-        <a href="{% url 'customer_portal' %}" class="text-danger small fw-semibold text-decoration-none">Clear filter</a>
+        <a href="{% url 'customer_portal' %}?state=" class="text-danger small fw-semibold text-decoration-none">Clear filter</a>
     </div>
     {% endif %}
 
@@ -190,6 +178,11 @@
                 <div class="card h-100 border-0 shadow-sm restaurant-card">
                     {% if restaurant.image %}
                         <img class="restaurant-list-image" src="{{ restaurant.image.url }}" alt="{{ restaurant.name }}" loading="lazy">
+                    {% else %}
+                        <div class="restaurant-list-image restaurant-list-image-fallback" aria-hidden="true">
+                            <span>🍽️</span>
+                            <small>{{ restaurant.cuisine_type }} · {{ restaurant.city|default:restaurant.state }}</small>
+                        </div>
                     {% endif %}
                     <div class="card-body d-flex flex-column">
                         <div class="d-flex justify-content-between align-items-center mb-2">
@@ -209,11 +202,13 @@
                         <p class="text-muted small mb-2">📞 {{ restaurant.phone }}</p>
                         <p class="card-text text-secondary small flex-grow-1">{{ restaurant.description }}</p>
 
-                        {% for item in restaurant.menu_items.all %}
-                            {% if item.is_available and forloop.counter <= 3 %}
-                                <div class="restaurant-list-menu-row"><span>{{ item.name }}</span><strong>₹{{ item.price }}</strong></div>
-                            {% endif %}
-                        {% endfor %}
+                        <div class="restaurant-list-menu-preview">
+                            {% for item in restaurant.menu_items.all %}
+                                {% if item.is_available and forloop.counter <= 3 %}
+                                    <div class="restaurant-list-menu-row"><span>{{ item.name }}</span><strong>₹{{ item.price }}</strong></div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
                         <a href="{% url 'restaurant_detail' restaurant.id %}" class="btn btn-danger mt-3">View menu</a>
                     </div>
                 </div>
@@ -225,15 +220,15 @@
                     {% if district and state %}
                         <h3>No restaurants in {{ district }}, {{ state }} yet</h3>
                         <p>We haven't launched delivery partners in {{ district }} yet. Try browsing all restaurants.</p>
-                        <a class="btn btn-danger" href="{% url 'customer_portal' %}">Browse all available restaurants</a>
+                        <a class="btn btn-danger" href="{% url 'customer_portal' %}?state=">Browse all available restaurants</a>
                     {% elif state %}
                         <h3>No approved restaurants in {{ state }} yet</h3>
                         <p>Try browsing all locations to see the restaurants currently available.</p>
-                        <a class="btn btn-danger" href="{% url 'customer_portal' %}">Browse all available restaurants</a>
+                        <a class="btn btn-danger" href="{% url 'customer_portal' %}?state=">Browse all available restaurants</a>
                     {% else %}
                         <h3>No restaurants found</h3>
                         <p>Try clearing your search or location filter.</p>
-                        <a class="btn btn-danger" href="{% url 'customer_portal' %}">Browse all restaurants</a>
+                        <a class="btn btn-danger" href="{% url 'customer_portal' %}?state=">Browse all restaurants</a>
                     {% endif %}
                 </div>
             </div>

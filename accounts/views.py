@@ -663,5 +663,146 @@ def delivery_dashboard_view(request):
 @login_required
 @role_required("admin")
 def admin_dashboard_view(request):
+    from datetime import datetime, time, timedelta
+
+    from django.db.models import Count, Sum
+    from django.utils import timezone
+
+    from delivery.models import DeliveryPartnerProfile
+    from orders.models import Order
+    from restaurant.models import RestaurantEarning
+
+    try:
+        days = int(request.GET.get("range", "7"))
+    except (TypeError, ValueError):
+        days = 7
+    if days not in (7, 30, 90):
+        days = 7
+
+    today = timezone.localdate()
+    start_date = today - timedelta(days=days - 1)
+
     users = User.objects.all().order_by("username")
-    return render(request, "dashboard/admin.html", {"users": users})
+    orders = Order.objects.all()
+    earnings = RestaurantEarning.objects.exclude(status="cancelled")
+
+    order_totals = orders.aggregate(
+        total=Count("id"),
+        delivered=Count(
+            "id",
+            filter=Q(status=Order.STATUS_DELIVERED),
+        ),
+        active=Count(
+            "id",
+            filter=Q(status__in=Order.LIVE_STATUSES),
+        ),
+        cancelled=Count(
+            "id",
+            filter=Q(
+                status__in=(Order.STATUS_CANCELLED, Order.STATUS_REJECTED),
+            ),
+        ),
+    )
+    financial_totals = earnings.aggregate(
+        platform_commission=Sum("commission_amount"),
+        platform_fee=Sum("platform_fee"),
+        restaurant_payouts=Sum("restaurant_amount"),
+        delivery_earnings=Sum("rider_payout"),
+    )
+    period_start = timezone.make_aware(datetime.combine(start_date, time.min))
+    period_end = timezone.make_aware(
+        datetime.combine(today + timedelta(days=1), time.min),
+    )
+    chart_days = []
+    daily_order_aggregates = {}
+    daily_earning_aggregates = {}
+    for offset in range(days):
+        day = start_date + timedelta(days=offset)
+        day_start = timezone.make_aware(datetime.combine(day, time.min))
+        day_end = timezone.make_aware(
+            datetime.combine(day + timedelta(days=1), time.min),
+        )
+        chart_days.append(day)
+        day_filter = Q(created_at__gte=day_start, created_at__lt=day_end)
+        daily_order_aggregates[f"orders_{offset}"] = Count(
+            "id",
+            filter=day_filter,
+        )
+        daily_order_aggregates[f"delivered_{offset}"] = Count(
+            "id",
+            filter=day_filter & Q(status=Order.STATUS_DELIVERED),
+        )
+        daily_earning_aggregates[f"commission_{offset}"] = Sum(
+            "commission_amount",
+            filter=day_filter,
+        )
+        daily_earning_aggregates[f"platform_fee_{offset}"] = Sum(
+            "platform_fee",
+            filter=day_filter,
+        )
+
+    daily_order_totals = orders.filter(
+        created_at__gte=period_start,
+        created_at__lt=period_end,
+    ).aggregate(**daily_order_aggregates)
+    daily_earning_totals = earnings.filter(
+        created_at__gte=period_start,
+        created_at__lt=period_end,
+    ).aggregate(**daily_earning_aggregates)
+    chart_labels = []
+    chart_orders = []
+    chart_delivered = []
+    chart_revenue = []
+    for offset, day in enumerate(chart_days):
+        chart_labels.append(day.strftime("%b %d"))
+        chart_orders.append(daily_order_totals[f"orders_{offset}"])
+        chart_delivered.append(daily_order_totals[f"delivered_{offset}"])
+        chart_revenue.append(
+            float(
+                (daily_earning_totals[f"commission_{offset}"] or 0)
+                + (daily_earning_totals[f"platform_fee_{offset}"] or 0)
+            )
+        )
+
+    recent_orders = (
+        orders.select_related("restaurant")
+        .order_by("-updated_at", "-pk")[:8]
+    )
+    pending_restaurants = (
+        Restaurant.objects.filter(status="pending")
+        .select_related("owner")
+        .order_by("created_at")[:5]
+    )
+    context = {
+        "users": users,
+        "range_days": days,
+        "chart_data": {
+            "labels": chart_labels,
+            "orders": chart_orders,
+            "delivered": chart_delivered,
+            "platform_revenue": chart_revenue,
+        },
+        "metrics": {
+            "customers": User.objects.filter(role="customer").count(),
+            "restaurants": Restaurant.objects.count(),
+            "delivery_partners": User.objects.filter(role="delivery_partner").count(),
+            "online_partners": DeliveryPartnerProfile.objects.filter(
+                is_online=True,
+            ).count(),
+            "orders": order_totals["total"],
+            "active_orders": order_totals["active"],
+            "completed_orders": order_totals["delivered"],
+            "cancelled_orders": order_totals["cancelled"],
+            "platform_revenue": (
+                financial_totals["platform_commission"] or 0
+            ) + (financial_totals["platform_fee"] or 0),
+            "restaurant_payouts": financial_totals["restaurant_payouts"] or 0,
+            "delivery_earnings": financial_totals["delivery_earnings"] or 0,
+        },
+        "recent_orders": recent_orders,
+        "pending_restaurants": pending_restaurants,
+        "pending_restaurant_count": Restaurant.objects.filter(
+            status="pending",
+        ).count(),
+    }
+    return render(request, "dashboard/admin.html", context)

@@ -389,6 +389,106 @@ body {
 }
 
 
+.location-hero-bar {
+    border: 1px solid #f0e9e1;
+    border-radius: 14px;
+    background: #fff;
+    transition: box-shadow 180ms ease;
+}
+
+.location-hero-bar:hover {
+    box-shadow: 0 8px 24px rgba(38, 27, 20, 0.08) !important;
+}
+
+.location-pin-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: #fee2e2;
+    color: #ef4444;
+    font-size: 1.3rem;
+}
+
+
+.restaurant-state-filter {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 20px 24px;
+    border: 1px solid #eee6dc;
+    border-radius: 14px;
+    background: linear-gradient(115deg, #fffaf4 0%, #fff 72%);
+    box-shadow: 0 8px 26px rgba(64, 42, 24, 0.06);
+}
+
+.restaurant-state-filter label {
+    display: block;
+    margin-bottom: 4px;
+    color: #29231f;
+    font-weight: 750;
+}
+
+.restaurant-state-filter p {
+    color: #77716c;
+    font-size: 0.9rem;
+}
+
+.restaurant-state-filter-controls {
+    display: flex;
+    gap: 10px;
+    width: min(100%, 480px);
+}
+
+.restaurant-state-filter-controls .form-select {
+    min-width: 0;
+}
+
+.restaurant-list-image-fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 8px;
+    color: #7d432f;
+    background: radial-gradient(circle at 20% 20%, #ffe1be, transparent 38%),
+        linear-gradient(135deg, #f8eee2, #f4d5c6);
+}
+
+.restaurant-list-image-fallback span {
+    font-size: 3rem;
+}
+
+.restaurant-list-image-fallback small {
+    font-weight: 700;
+}
+
+.restaurant-list-menu-preview {
+    margin-top: auto;
+}
+
+.restaurant-card .card-body {
+    padding: 20px;
+}
+
+.restaurant-card .card-title {
+    font-weight: 750;
+}
+
+@media (max-width: 700px) {
+    .restaurant-state-filter {
+        align-items: stretch;
+        flex-direction: column;
+        padding: 18px;
+    }
+
+    .restaurant-state-filter-controls {
+        width: 100%;
+    }
+}
 
 
 
@@ -1804,8 +1904,14 @@ body {
 .restaurant-card {
     overflow: hidden;
     border: 1px solid #e8e5df;
-    border-radius: 5px;
+    border-radius: 14px;
     background: #fff;
+    transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.restaurant-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 14px 32px rgba(38, 27, 20, 0.12) !important;
 }
 
 
